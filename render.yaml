@@ -3,7 +3,6 @@ services:
     name: conversation-with-ai
     runtime: node
     plan: starter
-    nodeVersion: "22"
     buildCommand: npm install && npm run build
     startCommand: npm start
     envVars:
