@@ -1,7 +1,6 @@
-export interface Source {
-  url: string
-  title: string
-}
+import type { Source } from './types'
+
+export type { Source }
 
 export async function extractSources(result: { sources: Promise<unknown[]> }): Promise<Source[]> {
   try {
