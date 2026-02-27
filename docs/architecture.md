@@ -22,6 +22,7 @@
 │                  API ROUTES                          │
 │                                                      │
 │  POST /api/augment      POST /api/conversation       │
+│  POST /api/tts                                       │
 │  GET /api/conversations  GET /api/conversations/[id]  │
 │                                                      │
 │  ┌──────────────────────────────────────────────┐   │
@@ -47,6 +48,10 @@
 | Orchestrator | `src/lib/orchestrator.ts` | Round 1 + Round 2 prompt builders |
 | Types | `src/lib/types.ts` | Shared TypeScript interfaces |
 | Export | `src/lib/export.ts` | Markdown, text, X-thread formatters |
+| TTS Utils | `src/lib/tts.ts` | Voice mapping, markdown stripping, text chunking |
+| TTS API Route | `src/app/api/tts/route.ts` | Proxy to OpenAI gpt-4o-mini-tts |
+| useTTS Hook | `src/hooks/useTTS.ts` | Audio playback state management (toggle/stop) |
+| SpeakerButton | `src/components/SpeakerButton.tsx` | Speaker icon with idle/loading/playing/error states |
 
 ## Augmenter Types
 
@@ -69,7 +74,22 @@ The `/api/augment` route returns a `MultiAugmenterResult` — all 5 topic type a
 6. Round 2: 4 models stream reactions in parallel (token-by-token)
 7. Responses saved to SQLite after each model completes
 8. User exports via clipboard
+9. (Optional) User clicks speaker icon → useTTS hook fetches /api/tts → OpenAI TTS → audio playback
 ```
+
+## TTS Flow
+
+```
+SpeakerButton (click) → useTTS.toggle()
+  → POST /api/tts { text, model }
+    → stripMarkdown(text)
+    → MODEL_VOICES[model] → voice
+    → OpenAI gpt-4o-mini-tts (voice, input)
+    → audio/mpeg response
+  → HTMLAudioElement.play()
+```
+
+Each AI model has a unique voice: Claude=coral, GPT=nova, Gemini=sage, Grok=ash. Only one response plays at a time (toggle behavior).
 
 ## SSE Protocol
 
@@ -109,3 +129,4 @@ responses
 - 2026-02-26: Initial implementation — full conversation flow with 4 models, 2 rounds, SSE streaming, export
 - 2026-02-26: Token-level streaming — switched from generateText to streamText, added token SSE events, real-time UI rendering with cursor indicator
 - 2026-02-26: Multi-augmentation — generate all 5 topic type augmentations in one call, clickable tags on review page to switch between framings
+- 2026-02-26: Text-to-Speech — on-demand TTS via OpenAI gpt-4o-mini-tts, unique voice per model, speaker button on all response cards
