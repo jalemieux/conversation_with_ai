@@ -18,6 +18,7 @@ function ConversationContent() {
   const [error, setError] = useState<string | null>(null)
   const [conversationId, setConversationId] = useState<string | null>(null)
   const [streamingResponses, setStreamingResponses] = useState<Map<string, ModelResponse>>(new Map())
+  const [topic, setTopic] = useState('')
   const startedRef = useRef(false)
 
   useEffect(() => {
@@ -29,6 +30,8 @@ function ConversationContent() {
     const topicType = searchParams.get('topicType') ?? ''
     const framework = searchParams.get('framework') ?? ''
     const models = (searchParams.get('models') ?? '').split(',').filter(Boolean)
+
+    setTopic(rawInput)
 
     if (!augmentedPrompt || models.length === 0) return
 
@@ -112,28 +115,29 @@ function ConversationContent() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-6">Conversation</h1>
+      <h1 className="text-2xl font-bold mb-2">Conversation</h1>
+      {topic && <p className="text-gray-500 mb-6">{topic}</p>}
 
       {error && (
-        <div className="bg-red-900/30 border border-red-700 rounded-lg p-4 mb-6 text-red-300">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6 text-red-700">
           {error}
         </div>
       )}
 
       {(round1.length > 0 || streaming1.length > 0) && (
         <div className="mb-8">
-          <h2 className="text-lg font-medium text-gray-400 mb-4">Round 1 — Initial Responses</h2>
+          <h2 className="text-lg font-medium text-gray-500 mb-4">Round 1 — Initial Responses</h2>
           <div className="space-y-4">
             {round1.map((r, i) => (
-              <div key={i} className="bg-gray-900 border border-gray-800 rounded-lg p-5">
-                <h3 className="font-medium text-blue-400 mb-2">{r.modelName}</h3>
-                <div className="text-gray-300 whitespace-pre-wrap">{r.content}</div>
+              <div key={i} className="bg-white border border-gray-200 rounded-lg p-5">
+                <h3 className="font-medium text-blue-600 mb-2">{r.modelName}</h3>
+                <div className="text-gray-700 whitespace-pre-wrap">{r.content}</div>
               </div>
             ))}
             {streaming1.map((r) => (
-              <div key={`streaming-${r.model}`} className="bg-gray-900 border border-gray-800 rounded-lg p-5">
-                <h3 className="font-medium text-blue-400 mb-2">{r.modelName}</h3>
-                <div className="text-gray-300 whitespace-pre-wrap">{r.content}<span className="animate-pulse">▍</span></div>
+              <div key={`streaming-${r.model}`} className="bg-white border border-gray-200 rounded-lg p-5">
+                <h3 className="font-medium text-blue-600 mb-2">{r.modelName}</h3>
+                <div className="text-gray-700 whitespace-pre-wrap">{r.content}<span className="animate-pulse">▍</span></div>
               </div>
             ))}
           </div>
@@ -142,18 +146,18 @@ function ConversationContent() {
 
       {(round2.length > 0 || streaming2.length > 0) && (
         <div className="mb-8">
-          <h2 className="text-lg font-medium text-gray-400 mb-4">Round 2 — Reactions</h2>
+          <h2 className="text-lg font-medium text-gray-500 mb-4">Round 2 — Reactions</h2>
           <div className="space-y-4">
             {round2.map((r, i) => (
-              <div key={i} className="bg-gray-900 border border-gray-800 rounded-lg p-5">
-                <h3 className="font-medium text-purple-400 mb-2">{r.modelName}</h3>
-                <div className="text-gray-300 whitespace-pre-wrap">{r.content}</div>
+              <div key={i} className="bg-white border border-gray-200 rounded-lg p-5">
+                <h3 className="font-medium text-purple-600 mb-2">{r.modelName}</h3>
+                <div className="text-gray-700 whitespace-pre-wrap">{r.content}</div>
               </div>
             ))}
             {streaming2.map((r) => (
-              <div key={`streaming-${r.model}`} className="bg-gray-900 border border-gray-800 rounded-lg p-5">
-                <h3 className="font-medium text-purple-400 mb-2">{r.modelName}</h3>
-                <div className="text-gray-300 whitespace-pre-wrap">{r.content}<span className="animate-pulse">▍</span></div>
+              <div key={`streaming-${r.model}`} className="bg-white border border-gray-200 rounded-lg p-5">
+                <h3 className="font-medium text-purple-600 mb-2">{r.modelName}</h3>
+                <div className="text-gray-700 whitespace-pre-wrap">{r.content}<span className="animate-pulse">▍</span></div>
               </div>
             ))}
           </div>
@@ -174,7 +178,7 @@ function ConversationContent() {
         <div className="mt-6 flex gap-3">
           <button
             onClick={() => { window.location.href = '/' }}
-            className="px-6 py-3 bg-gray-800 hover:bg-gray-700 rounded-lg font-medium transition-colors"
+            className="px-6 py-3 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors"
           >
             New Conversation
           </button>
@@ -189,7 +193,7 @@ function ConversationContent() {
                   })
                 })
             }}
-            className="px-6 py-3 bg-gray-800 hover:bg-gray-700 rounded-lg font-medium transition-colors"
+            className="px-6 py-3 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors"
           >
             Copy Markdown
           </button>
@@ -204,7 +208,7 @@ function ConversationContent() {
                   })
                 })
             }}
-            className="px-6 py-3 bg-gray-800 hover:bg-gray-700 rounded-lg font-medium transition-colors"
+            className="px-6 py-3 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors"
           >
             Copy Text
           </button>
@@ -220,7 +224,7 @@ function ConversationContent() {
                   })
                 })
             }}
-            className="px-6 py-3 bg-gray-800 hover:bg-gray-700 rounded-lg font-medium transition-colors"
+            className="px-6 py-3 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors"
           >
             Copy X Thread
           </button>
@@ -232,7 +236,7 @@ function ConversationContent() {
 
 export default function ConversationPage() {
   return (
-    <Suspense fallback={<div className="text-gray-500">Loading...</div>}>
+    <Suspense fallback={<div className="text-gray-400">Loading...</div>}>
       <ConversationContent />
     </Suspense>
   )

@@ -21,11 +21,11 @@ export default function ConversationDetailPage() {
   }, [params.id])
 
   if (error) {
-    return <div className="text-red-400">Error: {error}</div>
+    return <div className="text-red-600">Error: {error}</div>
   }
 
   if (!conversation) {
-    return <div className="text-gray-500">Loading...</div>
+    return <div className="text-gray-400">Loading...</div>
   }
 
   const round1 = conversation.responses.filter((r) => r.round === 1)
@@ -35,30 +35,30 @@ export default function ConversationDetailPage() {
 
   return (
     <div>
-      <a href="/" className="text-blue-400 hover:underline text-sm mb-4 block">
+      <a href="/" className="text-blue-600 hover:underline text-sm mb-4 block">
         Back to Home
       </a>
 
       <h1 className="text-2xl font-bold mb-2">{conversation.rawInput}</h1>
-      <p className="text-gray-400 mb-6">{conversation.augmentedPrompt}</p>
+      <p className="text-gray-500 mb-6">{conversation.augmentedPrompt}</p>
 
       <div className="mb-2 flex gap-2">
-        <span className="px-2 py-1 bg-gray-800 rounded text-xs text-gray-400">
+        <span className="px-2 py-1 bg-gray-100 rounded text-xs text-gray-500">
           {conversation.topicType}
         </span>
-        <span className="px-2 py-1 bg-gray-800 rounded text-xs text-gray-400">
+        <span className="px-2 py-1 bg-gray-100 rounded text-xs text-gray-500">
           {conversation.framework}
         </span>
       </div>
 
       {round1.length > 0 && (
         <div className="mb-8 mt-6">
-          <h2 className="text-lg font-medium text-gray-400 mb-4">Round 1</h2>
+          <h2 className="text-lg font-medium text-gray-500 mb-4">Round 1</h2>
           <div className="space-y-4">
             {round1.map((r) => (
-              <div key={r.id} className="bg-gray-900 border border-gray-800 rounded-lg p-5">
-                <h3 className="font-medium text-blue-400 mb-2">{getModelName(r.model)}</h3>
-                <div className="text-gray-300 whitespace-pre-wrap">{r.content}</div>
+              <div key={r.id} className="bg-white border border-gray-200 rounded-lg p-5">
+                <h3 className="font-medium text-blue-600 mb-2">{getModelName(r.model)}</h3>
+                <div className="text-gray-700 whitespace-pre-wrap">{r.content}</div>
               </div>
             ))}
           </div>
@@ -67,12 +67,12 @@ export default function ConversationDetailPage() {
 
       {round2.length > 0 && (
         <div className="mb-8">
-          <h2 className="text-lg font-medium text-gray-400 mb-4">Round 2</h2>
+          <h2 className="text-lg font-medium text-gray-500 mb-4">Round 2</h2>
           <div className="space-y-4">
             {round2.map((r) => (
-              <div key={r.id} className="bg-gray-900 border border-gray-800 rounded-lg p-5">
-                <h3 className="font-medium text-purple-400 mb-2">{getModelName(r.model)}</h3>
-                <div className="text-gray-300 whitespace-pre-wrap">{r.content}</div>
+              <div key={r.id} className="bg-white border border-gray-200 rounded-lg p-5">
+                <h3 className="font-medium text-purple-600 mb-2">{getModelName(r.model)}</h3>
+                <div className="text-gray-700 whitespace-pre-wrap">{r.content}</div>
               </div>
             ))}
           </div>
@@ -86,7 +86,7 @@ export default function ConversationDetailPage() {
               navigator.clipboard.writeText(exportMarkdown(conversation))
             })
           }}
-          className="px-6 py-3 bg-gray-800 hover:bg-gray-700 rounded-lg font-medium transition-colors"
+          className="px-6 py-3 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors"
         >
           Copy Markdown
         </button>
@@ -96,7 +96,7 @@ export default function ConversationDetailPage() {
               navigator.clipboard.writeText(exportText(conversation))
             })
           }}
-          className="px-6 py-3 bg-gray-800 hover:bg-gray-700 rounded-lg font-medium transition-colors"
+          className="px-6 py-3 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors"
         >
           Copy Text
         </button>

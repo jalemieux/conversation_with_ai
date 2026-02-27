@@ -44,35 +44,35 @@ function ReviewContent() {
       <h1 className="text-2xl font-bold mb-6">Review Augmented Prompt</h1>
 
       <div className="mb-4">
-        <label className="text-sm font-medium text-gray-400">Your Input</label>
-        <p className="mt-1 text-gray-300">{rawInput}</p>
+        <label className="text-sm font-medium text-gray-500">Your Input</label>
+        <p className="mt-1 text-gray-700">{rawInput}</p>
       </div>
 
       <div className="mb-2 flex gap-2">
-        <span className="px-2 py-1 bg-gray-800 rounded text-xs text-gray-400">{topicType}</span>
-        <span className="px-2 py-1 bg-gray-800 rounded text-xs text-gray-400">{framework}</span>
+        <span className="px-2 py-1 bg-gray-100 rounded text-xs text-gray-500">{topicType}</span>
+        <span className="px-2 py-1 bg-gray-100 rounded text-xs text-gray-500">{framework}</span>
       </div>
 
       <div className="mb-6">
-        <label className="text-sm font-medium text-gray-400">Augmented Prompt</label>
+        <label className="text-sm font-medium text-gray-500">Augmented Prompt</label>
         <textarea
           value={augmentedPrompt}
           onChange={(e) => setAugmentedPrompt(e.target.value)}
-          className="w-full h-40 mt-1 bg-gray-900 border border-gray-700 rounded-lg p-4 text-gray-100 focus:outline-none focus:border-blue-500 resize-none"
+          className="w-full h-40 mt-1 bg-white border border-gray-300 rounded-lg p-4 text-gray-900 focus:outline-none focus:border-blue-500 resize-none"
         />
       </div>
 
       <div className="flex gap-3">
         <button
           onClick={() => window.history.back()}
-          className="px-6 py-3 bg-gray-800 hover:bg-gray-700 rounded-lg font-medium transition-colors"
+          className="px-6 py-3 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors"
         >
           Back
         </button>
         <button
           onClick={handleRegenerate}
           disabled={regenerating}
-          className="px-6 py-3 bg-gray-800 hover:bg-gray-700 disabled:bg-gray-700 disabled:text-gray-500 rounded-lg font-medium transition-colors"
+          className="px-6 py-3 bg-gray-800 hover:bg-gray-700 disabled:bg-gray-200 disabled:text-gray-400 rounded-lg font-medium transition-colors"
         >
           {regenerating ? 'Regenerating...' : 'Regenerate'}
         </button>

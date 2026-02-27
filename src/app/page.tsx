@@ -58,7 +58,7 @@ export default function Home() {
   return (
     <div>
       <h1 className="text-3xl font-bold mb-2">Conversation With AI</h1>
-      <p className="text-gray-400 mb-8">
+      <p className="text-gray-500 mb-8">
         Moderate a roundtable discussion between frontier AI models
       </p>
 
@@ -67,12 +67,12 @@ export default function Home() {
           value={rawInput}
           onChange={(e) => setRawInput(e.target.value)}
           placeholder="Enter a topic or question... e.g. 'Future of software engineering'"
-          className="w-full h-32 bg-gray-900 border border-gray-700 rounded-lg p-4 text-gray-100 placeholder-gray-500 focus:outline-none focus:border-blue-500 resize-none"
+          className="w-full h-32 bg-white border border-gray-300 rounded-lg p-4 text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-500 resize-none"
         />
       </div>
 
       <div className="mb-6">
-        <h3 className="text-sm font-medium text-gray-400 mb-2">Models</h3>
+        <h3 className="text-sm font-medium text-gray-500 mb-2">Models</h3>
         <div className="flex gap-2 flex-wrap">
           {Object.entries(MODEL_CONFIGS).map(([key, config]) => (
             <button
@@ -81,7 +81,7 @@ export default function Home() {
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                 selectedModels.includes(key)
                   ? 'bg-blue-600 text-white'
-                  : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                  : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
               }`}
             >
               {config.name}
@@ -93,7 +93,7 @@ export default function Home() {
       <button
         onClick={handleSubmit}
         disabled={loading || !rawInput.trim() || selectedModels.length === 0}
-        className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 disabled:text-gray-500 rounded-lg font-medium transition-colors"
+        className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-200 disabled:text-gray-400 rounded-lg font-medium transition-colors"
       >
         {loading ? 'Augmenting...' : 'Start Conversation'}
       </button>
@@ -106,10 +106,10 @@ export default function Home() {
               <a
                 key={conv.id}
                 href={`/conversation/${conv.id}`}
-                className="block bg-gray-900 border border-gray-800 rounded-lg p-4 hover:border-gray-600 transition-colors"
+                className="block bg-white border border-gray-200 rounded-lg p-4 hover:border-gray-400 transition-colors"
               >
                 <div className="font-medium">{conv.rawInput}</div>
-                <div className="text-sm text-gray-500 mt-1">
+                <div className="text-sm text-gray-400 mt-1">
                   {conv.topicType} — {new Date(conv.createdAt).toLocaleDateString()}
                 </div>
               </a>
