@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/assets/hero-banner.png" alt="AI Roundtable" />
+</p>
+
 # Conversation With AI
 
 A structured roundtable discussion platform that orchestrates frontier AI models into multi-round debates on any topic. Users pose a question, an AI augmenter reframes it through multiple analytical lenses, and a panel of models — Claude, GPT, Gemini, and Grok — deliberate across two rounds with real-time streaming.
