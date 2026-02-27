@@ -116,8 +116,10 @@ export function getSearchConfig(modelKey: string): SearchConfig {
       }
     case 'grok':
       return {
-        tools: {
-          web_search: xai.tools.webSearch(),
+        providerOptions: {
+          xai: {
+            searchParameters: { mode: 'auto', returnCitations: true },
+          },
         },
       }
     default:
