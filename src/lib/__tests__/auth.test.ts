@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 describe('auth', () => {
   beforeEach(() => {
     vi.unstubAllEnvs()
+    vi.resetModules()
   })
 
   describe('generateToken', () => {
