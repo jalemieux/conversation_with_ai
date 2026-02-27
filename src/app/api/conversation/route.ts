@@ -54,7 +54,8 @@ export async function POST(request: Request) {
               ...(searchConfig.providerOptions && {
                 providerOptions: { ...config.providerOptions, ...searchConfig.providerOptions },
               }),
-              ...(searchConfig.tools && { tools: searchConfig.tools, maxSteps: 2 }),
+              ...(searchConfig.tools && { tools: searchConfig.tools }),
+              ...(searchConfig.maxSteps && { maxSteps: searchConfig.maxSteps }),
             })
 
             let fullText = ''

@@ -81,6 +81,7 @@ export function getDefaultModels(): string[] {
 
 export interface SearchConfig {
   tools?: ToolSet
+  maxSteps?: number
   providerOptions?: ProviderOptions
 }
 
@@ -99,6 +100,7 @@ export function getSearchConfig(modelKey: string): SearchConfig {
             },
           }),
         },
+        maxSteps: 2,
       }
     case 'gpt':
       return {
