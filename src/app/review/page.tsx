@@ -1,17 +1,49 @@
 'use client'
 
-import { Suspense, useState } from 'react'
+import { Suspense, useState, useMemo } from 'react'
 import { useSearchParams } from 'next/navigation'
+import { TOPIC_TYPES, type TopicType, type AugmentationsMap } from '@/lib/augmenter'
 
 function ReviewContent() {
   const searchParams = useSearchParams()
 
   const rawInput = searchParams.get('rawInput') ?? ''
-  const [augmentedPrompt, setAugmentedPrompt] = useState(searchParams.get('augmentedPrompt') ?? '')
-  const topicType = searchParams.get('topicType') ?? ''
-  const framework = searchParams.get('framework') ?? ''
+  const recommended = (searchParams.get('recommended') ?? 'prediction') as TopicType
   const models = searchParams.get('models') ?? ''
+
+  const augmentations: AugmentationsMap = useMemo(() => {
+    try {
+      return JSON.parse(searchParams.get('augmentations') ?? '{}')
+    } catch {
+      return {} as AugmentationsMap
+    }
+  }, [searchParams])
+
+  const [selectedType, setSelectedType] = useState<TopicType>(recommended)
+  const [augmentedPrompt, setAugmentedPrompt] = useState(
+    augmentations[recommended]?.augmentedPrompt ?? ''
+  )
+  const [isEdited, setIsEdited] = useState(false)
   const [regenerating, setRegenerating] = useState(false)
+  const [currentAugmentations, setCurrentAugmentations] = useState(augmentations)
+
+  const currentFramework = currentAugmentations[selectedType]?.framework ?? ''
+
+  const handleTagClick = (type: TopicType) => {
+    if (type === selectedType) return
+    if (isEdited) {
+      const confirmed = window.confirm('You have unsaved edits. Switching will discard them. Continue?')
+      if (!confirmed) return
+    }
+    setSelectedType(type)
+    setAugmentedPrompt(currentAugmentations[type]?.augmentedPrompt ?? '')
+    setIsEdited(false)
+  }
+
+  const handlePromptChange = (value: string) => {
+    setAugmentedPrompt(value)
+    setIsEdited(value !== currentAugmentations[selectedType]?.augmentedPrompt)
+  }
 
   const handleRegenerate = async () => {
     setRegenerating(true)
@@ -22,7 +54,9 @@ function ReviewContent() {
         body: JSON.stringify({ rawInput }),
       })
       const data = await res.json()
-      setAugmentedPrompt(data.augmentedPrompt)
+      setCurrentAugmentations(data.augmentations)
+      setAugmentedPrompt(data.augmentations[selectedType]?.augmentedPrompt ?? '')
+      setIsEdited(false)
     } finally {
       setRegenerating(false)
     }
@@ -32,8 +66,8 @@ function ReviewContent() {
     const params = new URLSearchParams({
       rawInput,
       augmentedPrompt,
-      topicType,
-      framework,
+      topicType: selectedType,
+      framework: currentFramework,
       models,
     })
     window.location.href = `/conversation?${params.toString()}`
@@ -41,44 +75,72 @@ function ReviewContent() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-6">Review Augmented Prompt</h1>
+      <a href="/" className="text-ink-faint hover:text-amber text-sm mb-8 inline-flex items-center gap-1.5 transition-colors">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="opacity-60"><path d="M10 12L6 8L10 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+        Back
+      </a>
 
-      <div className="mb-4">
-        <label className="text-sm font-medium text-gray-500">Your Input</label>
-        <p className="mt-1 text-gray-700">{rawInput}</p>
+      <h1 className="font-[family-name:var(--font-display)] text-3xl font-medium tracking-tight mb-8 animate-fade-up">
+        Review <span className="text-amber italic">Prompt</span>
+      </h1>
+
+      <div className="animate-fade-up stagger-1 mb-6">
+        <p className="text-xs font-medium tracking-widest uppercase text-ink-faint mb-2">Your Input</p>
+        <p className="text-ink-light leading-relaxed bg-card border border-border rounded-xl px-5 py-4">{rawInput}</p>
       </div>
 
-      <div className="mb-2 flex gap-2">
-        <span className="px-2 py-1 bg-gray-100 rounded text-xs text-gray-500">{topicType}</span>
-        <span className="px-2 py-1 bg-gray-100 rounded text-xs text-gray-500">{framework}</span>
+      <div className="animate-fade-up stagger-2 mb-2">
+        <div className="flex gap-2 flex-wrap mb-2">
+          {TOPIC_TYPES.map((type) => (
+            <button
+              key={type}
+              onClick={() => handleTagClick(type)}
+              className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all duration-200 cursor-pointer ${
+                type === selectedType
+                  ? 'bg-amber-faint text-amber ring-1 ring-amber/30'
+                  : 'bg-cream-dark text-ink-faint hover:text-ink-muted'
+              }`}
+            >
+              {type}
+            </button>
+          ))}
+        </div>
+        <span className="px-2.5 py-1 bg-cream-dark text-ink-muted rounded-lg text-xs font-medium">{currentFramework}</span>
       </div>
 
-      <div className="mb-6">
-        <label className="text-sm font-medium text-gray-500">Augmented Prompt</label>
+      <div className="animate-fade-up stagger-3 mb-8">
+        <p className="text-xs font-medium tracking-widest uppercase text-ink-faint mb-2">Augmented Prompt</p>
         <textarea
           value={augmentedPrompt}
-          onChange={(e) => setAugmentedPrompt(e.target.value)}
-          className="w-full h-40 mt-1 bg-white border border-gray-300 rounded-lg p-4 text-gray-900 focus:outline-none focus:border-blue-500 resize-none"
+          onChange={(e) => handlePromptChange(e.target.value)}
+          className="w-full h-44 bg-card border border-border rounded-xl p-5 text-ink focus:outline-none focus:border-amber transition-colors resize-none text-base leading-relaxed"
         />
       </div>
 
-      <div className="flex gap-3">
+      <div className="animate-fade-up stagger-4 flex gap-3">
         <button
           onClick={() => window.history.back()}
-          className="px-6 py-3 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors"
+          className="px-5 py-3 bg-card border border-border hover:border-border-strong rounded-xl font-medium transition-all duration-200 text-ink-muted hover:text-ink"
         >
           Back
         </button>
         <button
           onClick={handleRegenerate}
           disabled={regenerating}
-          className="px-6 py-3 bg-gray-800 hover:bg-gray-700 disabled:bg-gray-200 disabled:text-gray-400 rounded-lg font-medium transition-colors"
+          className="px-5 py-3 bg-ink text-cream hover:bg-ink-light disabled:bg-cream-dark disabled:text-ink-faint rounded-xl font-medium transition-all duration-200"
         >
-          {regenerating ? 'Regenerating...' : 'Regenerate'}
+          {regenerating ? (
+            <span className="flex items-center gap-2">
+              <span className="w-3.5 h-3.5 border-2 border-cream/30 border-t-cream rounded-full animate-spin" />
+              Regenerating...
+            </span>
+          ) : (
+            'Regenerate'
+          )}
         </button>
         <button
           onClick={handleRun}
-          className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 rounded-lg font-medium transition-colors"
+          className="flex-1 py-3 bg-amber text-white hover:bg-amber-light rounded-xl font-medium transition-all duration-200 active:scale-[0.995]"
         >
           Run Conversation
         </button>
@@ -89,7 +151,7 @@ function ReviewContent() {
 
 export default function ReviewPage() {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense fallback={<div className="text-ink-faint">Loading...</div>}>
       <ReviewContent />
     </Suspense>
   )
