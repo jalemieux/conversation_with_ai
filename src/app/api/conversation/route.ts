@@ -46,7 +46,7 @@ export async function POST(request: Request) {
             const { text } = await generateText({
               model: getModelProvider(modelKey),
               prompt,
-              maxTokens: 1500,
+              maxOutputTokens: 1500,
             })
 
             const respId = randomUUID()
@@ -76,7 +76,7 @@ export async function POST(request: Request) {
             const { text } = await generateText({
               model: getModelProvider(modelKey),
               prompt,
-              maxTokens: 1500,
+              maxOutputTokens: 1500,
             })
 
             const respId = randomUUID()

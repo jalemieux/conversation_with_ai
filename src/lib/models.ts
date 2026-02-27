@@ -2,7 +2,7 @@ import { anthropic } from '@ai-sdk/anthropic'
 import { openai } from '@ai-sdk/openai'
 import { google } from '@ai-sdk/google'
 import { xai } from '@ai-sdk/xai'
-import type { LanguageModelV1 } from 'ai'
+import type { LanguageModel } from 'ai'
 
 export interface ModelConfig {
   id: string
@@ -38,14 +38,14 @@ export const MODEL_CONFIGS: Record<string, ModelConfig> = {
   },
 }
 
-const PROVIDERS: Record<string, (modelId: string) => LanguageModelV1> = {
+const PROVIDERS: Record<string, (modelId: string) => LanguageModel> = {
   anthropic: (modelId) => anthropic(modelId),
   openai: (modelId) => openai(modelId),
   google: (modelId) => google(modelId),
   xai: (modelId) => xai(modelId),
 }
 
-export function getModelProvider(modelKey: string): LanguageModelV1 {
+export function getModelProvider(modelKey: string): LanguageModel {
   const config = MODEL_CONFIGS[modelKey]
   if (!config) throw new Error(`Unknown model: ${modelKey}`)
   return PROVIDERS[config.provider](config.modelId)
