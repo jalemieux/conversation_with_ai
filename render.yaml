@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: conversation-with-ai
+    runtime: node
+    plan: starter
+    nodeVersion: "22"
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: CWAI_DB_PATH
+        value: /data/conversations.db
+      - key: CWAI_ANTHROPIC_API_KEY
+        sync: false
+      - key: CWAI_OPENAI_API_KEY
+        sync: false
+      - key: CWAI_GOOGLE_API_KEY
+        sync: false
+      - key: CWAI_XAI_API_KEY
+        sync: false
+    disk:
+      name: sqlite-data
+      mountPath: /data
+      sizeGB: 1
