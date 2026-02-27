@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
 import { MODEL_CONFIGS } from '@/lib/models'
+import MarkdownContent from '@/components/MarkdownContent'
 import type { Conversation } from '@/lib/types'
 
 export default function ConversationDetailPage() {
@@ -58,7 +59,7 @@ export default function ConversationDetailPage() {
             {round1.map((r) => (
               <div key={r.id} className="bg-gray-900 border border-gray-800 rounded-lg p-5">
                 <h3 className="font-medium text-blue-400 mb-2">{getModelName(r.model)}</h3>
-                <div className="text-gray-300 whitespace-pre-wrap">{r.content}</div>
+                <MarkdownContent content={r.content} />
               </div>
             ))}
           </div>
@@ -72,7 +73,7 @@ export default function ConversationDetailPage() {
             {round2.map((r) => (
               <div key={r.id} className="bg-gray-900 border border-gray-800 rounded-lg p-5">
                 <h3 className="font-medium text-purple-400 mb-2">{getModelName(r.model)}</h3>
-                <div className="text-gray-300 whitespace-pre-wrap">{r.content}</div>
+                <MarkdownContent content={r.content} />
               </div>
             ))}
           </div>
