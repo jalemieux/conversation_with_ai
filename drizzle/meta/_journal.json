@@ -1,0 +1,13 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1772229122825,
+      "tag": "0000_pink_puff_adder",
+      "breakpoints": true
+    }
+  ]
+}

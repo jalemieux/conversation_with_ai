@@ -29,7 +29,8 @@ describe('Database Schema', () => {
         conversation_id TEXT NOT NULL REFERENCES conversations(id),
         round INTEGER NOT NULL,
         model TEXT NOT NULL,
-        content TEXT NOT NULL
+        content TEXT NOT NULL,
+        sources TEXT
       );
     `)
   })
@@ -53,6 +54,11 @@ describe('Database Schema', () => {
     expect(result).toHaveLength(1)
     expect(result[0].rawInput).toBe('Future of software')
     expect(result[0].topicType).toBe('prediction')
+  })
+
+  it('should have sources column on responses table', () => {
+    const columns = Object.keys(responses)
+    expect(columns).toContain('sources')
   })
 
   it('should insert and retrieve responses linked to a conversation', async () => {
