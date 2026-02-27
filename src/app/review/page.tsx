@@ -27,6 +27,7 @@ function ReviewContent() {
   )
   const [isEdited, setIsEdited] = useState(false)
   const [regenerating, setRegenerating] = useState(false)
+  const [essayMode, setEssayMode] = useState(true)
   const [currentAugmentations, setCurrentAugmentations] = useState(augmentations)
 
   const currentFramework = currentAugmentations[selectedType]?.framework ?? ''
@@ -71,6 +72,7 @@ function ReviewContent() {
       topicType: selectedType,
       framework: currentFramework,
       models,
+      essayMode: String(essayMode),
     })
     window.location.href = `/conversation?${params.toString()}`
   }
@@ -116,7 +118,29 @@ function ReviewContent() {
         <span className="px-2.5 py-1 bg-cream-dark text-ink-muted rounded-lg text-xs font-medium">{currentFramework}</span>
       </div>
 
-      <div className="animate-fade-up stagger-3 mb-8">
+      <div className="animate-fade-up stagger-3 mb-6 flex items-center gap-3">
+        <label htmlFor="essay-mode" className="text-xs font-medium tracking-widest uppercase text-ink-faint cursor-pointer">
+          Essay Mode
+        </label>
+        <button
+          id="essay-mode"
+          role="checkbox"
+          aria-checked={essayMode}
+          aria-label="Essay mode"
+          onClick={() => setEssayMode(!essayMode)}
+          className={`relative w-9 h-5 rounded-full transition-colors duration-200 ${
+            essayMode ? 'bg-amber' : 'bg-border-strong'
+          }`}
+        >
+          <span
+            className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow-sm transition-transform duration-200 ${
+              essayMode ? 'translate-x-4' : 'translate-x-0'
+            }`}
+          />
+        </button>
+      </div>
+
+      <div className="animate-fade-up stagger-4 mb-8">
         <p className="text-xs font-medium tracking-widest uppercase text-ink-faint mb-2">Augmented Prompt</p>
         <textarea
           value={augmentedPrompt}
@@ -125,7 +149,7 @@ function ReviewContent() {
         />
       </div>
 
-      <div className="animate-fade-up stagger-4 flex gap-3">
+      <div className="animate-fade-up stagger-5 flex gap-3">
         <button
           onClick={() => window.history.back()}
           className="px-5 py-3 bg-card border border-border hover:border-border-strong rounded-xl font-medium transition-all duration-200 text-ink-muted hover:text-ink"
