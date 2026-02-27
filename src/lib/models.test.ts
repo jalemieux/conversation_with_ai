@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { MODEL_CONFIGS, getModelProvider, getDefaultModels } from './models'
+import { MODEL_CONFIGS, getModelProvider, getDefaultModels, getSearchConfig } from './models'
 
 describe('Model Configuration', () => {
   it('should have 4 model configs', () => {
@@ -25,5 +25,36 @@ describe('Model Configuration', () => {
   it('should return all 4 default models', () => {
     const defaults = getDefaultModels()
     expect(defaults).toHaveLength(4)
+  })
+})
+
+describe('getSearchConfig', () => {
+  it('should return search tools for claude', () => {
+    const config = getSearchConfig('claude')
+    expect(config.tools).toBeDefined()
+    expect(config.tools!.web_search).toBeDefined()
+  })
+
+  it('should return search tools for gpt', () => {
+    const config = getSearchConfig('gpt')
+    expect(config.tools).toBeDefined()
+    expect(config.tools!.web_search).toBeDefined()
+  })
+
+  it('should return search tools for gemini', () => {
+    const config = getSearchConfig('gemini')
+    expect(config.tools).toBeDefined()
+    expect(config.tools!.google_search).toBeDefined()
+  })
+
+  it('should return search tools for grok', () => {
+    const config = getSearchConfig('grok')
+    expect(config.tools).toBeDefined()
+    expect(config.tools!.web_search).toBeDefined()
+  })
+
+  it('should return empty config for unknown model', () => {
+    const config = getSearchConfig('unknown')
+    expect(config).toEqual({})
   })
 })
