@@ -9,9 +9,9 @@
   --color-ink-light: #3d3d3d;
   --color-ink-muted: #6b6b6b;
   --color-ink-faint: #9a9a9a;
-  --color-amber: #c2742f;
-  --color-amber-light: #e8a66a;
-  --color-amber-faint: #fdf4eb;
+  --color-amber: #7a9a82;
+  --color-amber-light: #a3bda9;
+  --color-amber-faint: #edf3ef;
   --color-card: #ffffff;
   --color-card-hover: #fdfcfa;
   --color-border: #e8e2d9;
@@ -19,14 +19,14 @@
   --color-danger: #c0392b;
 
   /* ── Model accent colors ── */
-  --color-claude: #d4783c;
+  --color-claude: #c75a3a;
   --color-gpt: #2d8c6f;
   --color-gemini: #4a6fa5;
   --color-grok: #8b5cf6;
   --color-round2: #9d4e8c;
 
   /* ── Model accent backgrounds (faint) ── */
-  --color-claude-faint: #fdf0e6;
+  --color-claude-faint: #fceee8;
   --color-gpt-faint: #e6f5ef;
   --color-gemini-faint: #eaf0f8;
   --color-grok-faint: #f3edfe;
