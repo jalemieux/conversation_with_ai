@@ -7,9 +7,11 @@ import { TOPIC_TYPES, type TopicType, type AugmentationsMap } from '@/lib/augmen
 function ReviewContent() {
   const searchParams = useSearchParams()
 
-  const rawInput = searchParams.get('rawInput') ?? ''
+  const initialRawInput = searchParams.get('rawInput') ?? ''
   const recommended = (searchParams.get('recommended') ?? 'prediction') as TopicType
   const models = searchParams.get('models') ?? ''
+
+  const [rawInput, setRawInput] = useState(initialRawInput)
 
   const augmentations: AugmentationsMap = useMemo(() => {
     try {
@@ -86,7 +88,12 @@ function ReviewContent() {
 
       <div className="animate-fade-up stagger-1 mb-6">
         <p className="text-xs font-medium tracking-widest uppercase text-ink-faint mb-2">Your Input</p>
-        <p className="text-ink-light leading-relaxed bg-card border border-border rounded-xl px-5 py-4">{rawInput}</p>
+        <textarea
+          value={rawInput}
+          onChange={(e) => setRawInput(e.target.value)}
+          className="w-full bg-card border border-border rounded-xl px-5 py-4 text-ink-light leading-relaxed focus:outline-none focus:border-amber transition-colors resize-none text-base"
+          rows={3}
+        />
       </div>
 
       <div className="animate-fade-up stagger-2 mb-2">
