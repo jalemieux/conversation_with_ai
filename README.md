@@ -30,11 +30,11 @@ LLMs are increasingly capable, but comparing their reasoning on the same prompt 
 
 ```mermaid
 flowchart TD
-    A["🎯 User enters a topic"] --> B["Augmenter\n(5 framings)"]
-    B --> C["Review Page\n(select one)"]
+    A["User enters a topic"] --> B["Augmenter<br/>(5 framings)"]
+    B --> C["Review Page<br/>(select one)"]
     C --> D1["Claude"] & D2["GPT"] & D3["Gemini"] & D4["Grok"]
 
-    subgraph "Round 1 — Initial takes (parallel SSE)"
+    subgraph R1["Round 1 — Initial takes"]
         D1 & D2 & D3 & D4
     end
 
@@ -43,7 +43,7 @@ flowchart TD
     D3 --> E3["Gemini"]
     D4 --> E4["Grok"]
 
-    subgraph "Round 2 — React to each other"
+    subgraph R2["Round 2 — Reactions"]
         E1 & E2 & E3 & E4
     end
 ```
@@ -53,6 +53,7 @@ flowchart TD
 3. **Round 1** — All selected models stream responses in parallel via SSE, token-by-token
 4. **Round 2** — Each model reads the others' Round 1 responses and reacts — agreements, disagreements, and new perspectives
 5. **Export** — Copy the full discussion as Markdown, plain text, or an X thread
+6. **Text-to-Speech** — Click the speaker icon on any response to hear it read aloud via OpenAI TTS, with a unique voice per model (Claude=coral, GPT=nova, Gemini=sage, Grok=ash)
 
 ## Key Technical Decisions
 
@@ -79,18 +80,23 @@ src/
 │   └── api/
 │       ├── augment/            # POST — multi-augmentation
 │       ├── conversation/       # POST — SSE stream (rounds 1 & 2)
+│       ├── tts/                # POST — text-to-speech via OpenAI
 │       └── conversations/      # GET — history + detail
 ├── lib/
 │   ├── models.ts               # 4 provider configs (Claude, GPT, Gemini, Grok)
 │   ├── augmenter.ts            # Prompt rewriting + 5-framing generation
 │   ├── orchestrator.ts         # Round 1 & 2 prompt builders
 │   ├── export.ts               # Markdown, text, X-thread formatters
+│   ├── tts.ts                  # Voice mapping, markdown stripping, chunking
 │   └── types.ts                # Shared TypeScript interfaces
+├── hooks/
+│   └── useTTS.ts               # TTS audio playback state management
 ├── db/
 │   ├── schema.ts               # Drizzle table definitions
 │   └── index.ts                # SQLite connection singleton
 └── components/
-    └── MarkdownContent.tsx     # Rendered markdown with GFM support
+    ├── MarkdownContent.tsx     # Rendered markdown with GFM support
+    └── SpeakerButton.tsx       # TTS speaker icon with state indicators
 ```
 
 ## Running Locally
@@ -110,5 +116,5 @@ CWAI_XAI_API_KEY=...
 ```bash
 npm run dev        # http://localhost:3000
 npm test           # watch mode
-npm run test:run   # single run (6 suites, 26 tests)
+npm run test:run   # single run (10 suites, 61 tests)
 ```

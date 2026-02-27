@@ -3,6 +3,8 @@
 import { Suspense, useState, useEffect, useRef } from 'react'
 import { useSearchParams } from 'next/navigation'
 import MarkdownContent from '@/components/MarkdownContent'
+import { useTTS } from '@/hooks/useTTS'
+import { SpeakerButton } from '@/components/SpeakerButton'
 
 interface ModelResponse {
   round: number
@@ -37,6 +39,7 @@ function ConversationContent() {
   const [streamingModels, setStreamingModels] = useState<Map<string, { round: number; model: string; modelName: string; provider: string; modelId: string }>>(new Map())
   const [topic, setTopic] = useState('')
   const startedRef = useRef(false)
+  const tts = useTTS()
 
   useEffect(() => {
     if (startedRef.current) return
@@ -136,12 +139,23 @@ function ConversationContent() {
     return MODEL_DOT[model] ?? 'bg-amber'
   }
 
+  const getSpeakerState = (key: string): 'idle' | 'loading' | 'playing' | 'error' => {
+    if (tts.playingKey === key) return 'playing'
+    if (tts.loadingKey === key) return 'loading'
+    if (tts.errorKey === key) return 'error'
+    return 'idle'
+  }
+
   const ResponseCard = ({ r }: { r: ModelResponse }) => (
     <details open className="bg-card border border-border rounded-xl overflow-hidden animate-fade-up">
       <summary className="px-5 py-4 cursor-pointer select-none hover:bg-card-hover transition-colors flex items-center gap-3">
         <span className={`w-2 h-2 rounded-full flex-shrink-0 ${getDot(r.model, r.round)}`} />
         <span className={`font-medium ${getAccent(r.model, r.round)}`}>{r.modelName}</span>
         <span className="text-xs text-ink-faint">{r.provider} / {r.modelId}</span>
+        <SpeakerButton
+          state={getSpeakerState(`${r.round}-${r.model}`)}
+          onClick={() => tts.toggle(`${r.round}-${r.model}`, r.content, r.model)}
+        />
       </summary>
       <div className="px-5 pb-5 border-t border-border pt-4">
         <MarkdownContent content={r.content} />
