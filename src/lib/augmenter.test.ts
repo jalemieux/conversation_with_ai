@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildAugmenterPrompt, parseAugmenterResponse, TOPIC_TYPES, type MultiAugmenterResult } from './augmenter'
+import { buildAugmenterPrompt, parseAugmenterResponse, parseMultiAugmenterResponse, TOPIC_TYPES, type MultiAugmenterResult } from './augmenter'
 
 describe('augmenter types', () => {
   it('exports TOPIC_TYPES with all 5 types', () => {
@@ -68,6 +68,41 @@ describe('Prompt Augmenter', () => {
 
     it('should throw on invalid JSON', () => {
       expect(() => parseAugmenterResponse('not json')).toThrow()
+    })
+  })
+
+  describe('parseMultiAugmenterResponse', () => {
+    it('parses valid JSON response', () => {
+      const json = JSON.stringify({
+        recommended: 'prediction',
+        augmentations: {
+          prediction: { framework: 'scenario analysis', augmented_prompt: 'pred prompt' },
+          opinion: { framework: 'steel man', augmented_prompt: 'opinion prompt' },
+          comparison: { framework: 'strongest case', augmented_prompt: 'comp prompt' },
+          trend_analysis: { framework: 'timeline', augmented_prompt: 'trend prompt' },
+          open_question: { framework: 'multiple angles', augmented_prompt: 'open prompt' },
+        },
+      })
+      const result = parseMultiAugmenterResponse(json)
+      expect(result.recommended).toBe('prediction')
+      expect(result.augmentations.prediction.augmentedPrompt).toBe('pred prompt')
+      expect(result.augmentations.prediction.framework).toBe('scenario analysis')
+      expect(Object.keys(result.augmentations)).toHaveLength(5)
+    })
+
+    it('handles markdown-wrapped JSON', () => {
+      const json = '```json\n' + JSON.stringify({
+        recommended: 'opinion',
+        augmentations: {
+          prediction: { framework: 'f', augmented_prompt: 'p' },
+          opinion: { framework: 'f', augmented_prompt: 'p' },
+          comparison: { framework: 'f', augmented_prompt: 'p' },
+          trend_analysis: { framework: 'f', augmented_prompt: 'p' },
+          open_question: { framework: 'f', augmented_prompt: 'p' },
+        },
+      }) + '\n```'
+      const result = parseMultiAugmenterResponse(json)
+      expect(result.recommended).toBe('opinion')
     })
   })
 })
