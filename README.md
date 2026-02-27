@@ -4,7 +4,7 @@ Moderate a roundtable discussion between frontier AI models. Type a topic, get i
 
 ## Features
 
-- Automatic prompt augmentation with topic classification
+- Multi-augmentation prompt selection — generates all 5 topic framings, pick your preferred one via clickable tags
 - 4 frontier models: Claude, GPT-4, Gemini, Grok
 - Two-round discussion (initial responses + reactions)
 - Real-time SSE streaming
@@ -44,4 +44,4 @@ npm test        # watch mode
 npm run test:run # single run
 ```
 
-5 test suites, 17 tests covering schema, models, augmenter, orchestrator, and exports.
+6 test suites, 26 tests covering schema, models, augmenter, orchestrator, exports, and review page.

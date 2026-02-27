@@ -43,17 +43,27 @@
 | DB Schema | `src/db/schema.ts` | Drizzle table definitions |
 | DB Singleton | `src/db/index.ts` | SQLite connection + table creation |
 | Model Config | `src/lib/models.ts` | 4 AI provider configurations |
-| Augmenter | `src/lib/augmenter.ts` | Topic classification + prompt rewriting |
+| Augmenter | `src/lib/augmenter.ts` | Multi-augmentation: generates all 5 topic framings + prompt rewriting |
 | Orchestrator | `src/lib/orchestrator.ts` | Round 1 + Round 2 prompt builders |
 | Types | `src/lib/types.ts` | Shared TypeScript interfaces |
 | Export | `src/lib/export.ts` | Markdown, text, X-thread formatters |
+
+## Augmenter Types
+
+```typescript
+AugmentationEntry    { framework, augmentedPrompt }
+AugmentationsMap     Record<TopicType, AugmentationEntry>  // all 5 framings
+MultiAugmenterResult { recommended: TopicType, augmentations: AugmentationsMap }
+```
+
+The `/api/augment` route returns a `MultiAugmenterResult` — all 5 topic type augmentations in a single Haiku call. The review page renders clickable tags for each type; clicking a tag swaps the textarea content. The selected augmentation is passed downstream to the conversation API.
 
 ## Data Flow
 
 ```
 1. User types topic → Home page
-2. POST /api/augment → Claude Haiku classifies + rewrites
-3. User reviews augmented prompt → Review page
+2. POST /api/augment → Claude Haiku generates all 5 augmentations + recommends best fit
+3. User reviews augmented prompt → Review page (clickable topic type tags)
 4. POST /api/conversation → SSE stream begins
 5. Round 1: 4 models stream responses in parallel (token-by-token)
 6. Round 2: 4 models stream reactions in parallel (token-by-token)
@@ -98,3 +108,4 @@ responses
 
 - 2026-02-26: Initial implementation — full conversation flow with 4 models, 2 rounds, SSE streaming, export
 - 2026-02-26: Token-level streaming — switched from generateText to streamText, added token SSE events, real-time UI rendering with cursor indicator
+- 2026-02-26: Multi-augmentation — generate all 5 topic type augmentations in one call, clickable tags on review page to switch between framings
