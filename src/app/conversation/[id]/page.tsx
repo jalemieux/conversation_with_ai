@@ -31,18 +31,18 @@ export default function ConversationDetailPage() {
   const round1 = conversation.responses.filter((r) => r.round === 1)
   const round2 = conversation.responses.filter((r) => r.round === 2)
 
-  const getModelName = (key: string) => MODEL_CONFIGS[key]?.name ?? key
+  const getModelConfig = (key: string) => MODEL_CONFIGS[key] ?? { name: key, provider: key, modelId: key }
 
   return (
     <div>
-      <a href="/" className="text-blue-600 hover:underline text-sm mb-4 block">
-        Back to Home
-      </a>
+      <a href="/" className="text-blue-600 hover:underline text-sm mb-4 block">&larr; New Conversation</a>
 
-      <h1 className="text-2xl font-bold mb-2">{conversation.rawInput}</h1>
-      <p className="text-gray-500 mb-6">{conversation.augmentedPrompt}</p>
+      <div className="mb-8 border-l-4 border-blue-400 bg-blue-50 rounded-r-lg px-5 py-4">
+        <p className="text-xs font-medium text-blue-500 uppercase tracking-wide mb-1">Topic</p>
+        <p className="text-gray-700 leading-relaxed">{conversation.augmentedPrompt || conversation.rawInput}</p>
+      </div>
 
-      <div className="mb-2 flex gap-2">
+      <div className="mb-6 flex gap-2">
         <span className="px-2 py-1 bg-gray-100 rounded text-xs text-gray-500">
           {conversation.topicType}
         </span>
@@ -52,29 +52,41 @@ export default function ConversationDetailPage() {
       </div>
 
       {round1.length > 0 && (
-        <div className="mb-8 mt-6">
-          <h2 className="text-lg font-medium text-gray-500 mb-4">Round 1</h2>
+        <div className="mb-8">
+          <h2 className="text-lg font-medium text-gray-500 mb-4">Round 1 — Initial Responses</h2>
           <div className="space-y-4">
-            {round1.map((r) => (
-              <div key={r.id} className="bg-white border border-gray-200 rounded-lg p-5">
-                <h3 className="font-medium text-blue-600 mb-2">{getModelName(r.model)}</h3>
-                <div className="text-gray-700 whitespace-pre-wrap">{r.content}</div>
-              </div>
-            ))}
+            {round1.map((r) => {
+              const config = getModelConfig(r.model)
+              return (
+                <details key={r.id} open className="bg-white border border-gray-200 rounded-lg">
+                  <summary className="px-5 py-3 cursor-pointer select-none hover:bg-gray-50 rounded-lg flex items-baseline gap-2">
+                    <span className="font-medium text-blue-600">{config.name}</span>
+                    <span className="text-xs text-gray-400">{config.provider} / {config.modelId}</span>
+                  </summary>
+                  <div className="text-gray-700 whitespace-pre-wrap px-5 pb-5">{r.content}</div>
+                </details>
+              )
+            })}
           </div>
         </div>
       )}
 
       {round2.length > 0 && (
         <div className="mb-8">
-          <h2 className="text-lg font-medium text-gray-500 mb-4">Round 2</h2>
+          <h2 className="text-lg font-medium text-gray-500 mb-4">Round 2 — Reactions</h2>
           <div className="space-y-4">
-            {round2.map((r) => (
-              <div key={r.id} className="bg-white border border-gray-200 rounded-lg p-5">
-                <h3 className="font-medium text-purple-600 mb-2">{getModelName(r.model)}</h3>
-                <div className="text-gray-700 whitespace-pre-wrap">{r.content}</div>
-              </div>
-            ))}
+            {round2.map((r) => {
+              const config = getModelConfig(r.model)
+              return (
+                <details key={r.id} open className="bg-white border border-gray-200 rounded-lg">
+                  <summary className="px-5 py-3 cursor-pointer select-none hover:bg-gray-50 rounded-lg flex items-baseline gap-2">
+                    <span className="font-medium text-purple-600">{config.name}</span>
+                    <span className="text-xs text-gray-400">{config.provider} / {config.modelId}</span>
+                  </summary>
+                  <div className="text-gray-700 whitespace-pre-wrap px-5 pb-5">{r.content}</div>
+                </details>
+              )
+            })}
           </div>
         </div>
       )}

@@ -7,6 +7,8 @@ interface ModelResponse {
   round: number
   model: string
   modelName: string
+  provider: string
+  modelId: string
   content: string
 }
 
@@ -31,7 +33,7 @@ function ConversationContent() {
     const framework = searchParams.get('framework') ?? ''
     const models = (searchParams.get('models') ?? '').split(',').filter(Boolean)
 
-    setTopic(rawInput)
+    setTopic(augmentedPrompt || rawInput)
 
     if (!augmentedPrompt || models.length === 0) return
 
@@ -76,7 +78,7 @@ function ConversationContent() {
                     if (existing) {
                       next.set(key, { ...existing, content: existing.content + data.chunk })
                     } else {
-                      next.set(key, { round: data.round, model: data.model, modelName: data.modelName, content: data.chunk })
+                      next.set(key, { round: data.round, model: data.model, modelName: data.modelName, provider: data.provider, modelId: data.modelId, content: data.chunk })
                     }
                     return next
                   })
@@ -115,8 +117,13 @@ function ConversationContent() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-2">Conversation</h1>
-      {topic && <p className="text-gray-500 mb-6">{topic}</p>}
+      <a href="/" className="text-blue-600 hover:underline text-sm mb-4 block">&larr; New Conversation</a>
+      {topic && (
+        <div className="mb-8 border-l-4 border-blue-400 bg-blue-50 rounded-r-lg px-5 py-4">
+          <p className="text-xs font-medium text-blue-500 uppercase tracking-wide mb-1">Topic</p>
+          <p className="text-gray-700 leading-relaxed">{topic}</p>
+        </div>
+      )}
 
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6 text-red-700">
@@ -129,16 +136,22 @@ function ConversationContent() {
           <h2 className="text-lg font-medium text-gray-500 mb-4">Round 1 — Initial Responses</h2>
           <div className="space-y-4">
             {round1.map((r, i) => (
-              <div key={i} className="bg-white border border-gray-200 rounded-lg p-5">
-                <h3 className="font-medium text-blue-600 mb-2">{r.modelName}</h3>
-                <div className="text-gray-700 whitespace-pre-wrap">{r.content}</div>
-              </div>
+              <details key={i} open className="bg-white border border-gray-200 rounded-lg">
+                <summary className="px-5 py-3 cursor-pointer select-none hover:bg-gray-50 rounded-lg flex items-baseline gap-2">
+                  <span className="font-medium text-blue-600">{r.modelName}</span>
+                  <span className="text-xs text-gray-400">{r.provider} / {r.modelId}</span>
+                </summary>
+                <div className="text-gray-700 whitespace-pre-wrap px-5 pb-5">{r.content}</div>
+              </details>
             ))}
             {streaming1.map((r) => (
-              <div key={`streaming-${r.model}`} className="bg-white border border-gray-200 rounded-lg p-5">
-                <h3 className="font-medium text-blue-600 mb-2">{r.modelName}</h3>
-                <div className="text-gray-700 whitespace-pre-wrap">{r.content}<span className="animate-pulse">▍</span></div>
-              </div>
+              <details key={`streaming-${r.model}`} open className="bg-white border border-gray-200 rounded-lg">
+                <summary className="px-5 py-3 cursor-pointer select-none hover:bg-gray-50 rounded-lg flex items-baseline gap-2">
+                  <span className="font-medium text-blue-600">{r.modelName}</span>
+                  <span className="text-xs text-gray-400">{r.provider} / {r.modelId}</span>
+                </summary>
+                <div className="text-gray-700 whitespace-pre-wrap px-5 pb-5">{r.content}<span className="animate-pulse">▍</span></div>
+              </details>
             ))}
           </div>
         </div>
@@ -149,16 +162,22 @@ function ConversationContent() {
           <h2 className="text-lg font-medium text-gray-500 mb-4">Round 2 — Reactions</h2>
           <div className="space-y-4">
             {round2.map((r, i) => (
-              <div key={i} className="bg-white border border-gray-200 rounded-lg p-5">
-                <h3 className="font-medium text-purple-600 mb-2">{r.modelName}</h3>
-                <div className="text-gray-700 whitespace-pre-wrap">{r.content}</div>
-              </div>
+              <details key={i} open className="bg-white border border-gray-200 rounded-lg">
+                <summary className="px-5 py-3 cursor-pointer select-none hover:bg-gray-50 rounded-lg flex items-baseline gap-2">
+                  <span className="font-medium text-purple-600">{r.modelName}</span>
+                  <span className="text-xs text-gray-400">{r.provider} / {r.modelId}</span>
+                </summary>
+                <div className="text-gray-700 whitespace-pre-wrap px-5 pb-5">{r.content}</div>
+              </details>
             ))}
             {streaming2.map((r) => (
-              <div key={`streaming-${r.model}`} className="bg-white border border-gray-200 rounded-lg p-5">
-                <h3 className="font-medium text-purple-600 mb-2">{r.modelName}</h3>
-                <div className="text-gray-700 whitespace-pre-wrap">{r.content}<span className="animate-pulse">▍</span></div>
-              </div>
+              <details key={`streaming-${r.model}`} open className="bg-white border border-gray-200 rounded-lg">
+                <summary className="px-5 py-3 cursor-pointer select-none hover:bg-gray-50 rounded-lg flex items-baseline gap-2">
+                  <span className="font-medium text-purple-600">{r.modelName}</span>
+                  <span className="text-xs text-gray-400">{r.provider} / {r.modelId}</span>
+                </summary>
+                <div className="text-gray-700 whitespace-pre-wrap px-5 pb-5">{r.content}<span className="animate-pulse">▍</span></div>
+              </details>
             ))}
           </div>
         </div>

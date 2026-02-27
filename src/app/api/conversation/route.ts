@@ -51,7 +51,7 @@ export async function POST(request: Request) {
             let fullText = ''
             for await (const chunk of result.textStream) {
               fullText += chunk
-              send('token', { round: 1, model: modelKey, modelName: config.name, chunk })
+              send('token', { round: 1, model: modelKey, modelName: config.name, provider: config.provider, modelId: config.modelId, chunk })
             }
 
             const respId = randomUUID()
@@ -63,7 +63,7 @@ export async function POST(request: Request) {
               content: fullText,
             })
 
-            send('response', { round: 1, model: modelKey, modelName: config.name, content: fullText })
+            send('response', { round: 1, model: modelKey, modelName: config.name, provider: config.provider, modelId: config.modelId, content: fullText })
             return { model: config.name, content: fullText }
           })
         )
@@ -86,7 +86,7 @@ export async function POST(request: Request) {
             let fullText = ''
             for await (const chunk of result.textStream) {
               fullText += chunk
-              send('token', { round: 2, model: modelKey, modelName: config.name, chunk })
+              send('token', { round: 2, model: modelKey, modelName: config.name, provider: config.provider, modelId: config.modelId, chunk })
             }
 
             const respId = randomUUID()
@@ -98,7 +98,7 @@ export async function POST(request: Request) {
               content: fullText,
             })
 
-            send('response', { round: 2, model: modelKey, modelName: config.name, content: fullText })
+            send('response', { round: 2, model: modelKey, modelName: config.name, provider: config.provider, modelId: config.modelId, content: fullText })
           })
         )
 
