@@ -18,6 +18,8 @@ services:
         sync: false
       - key: CWAI_XAI_API_KEY
         sync: false
+      - key: CWAI_ACCESS_PASSWORD
+        sync: false
     disk:
       name: sqlite-data
       mountPath: /data
