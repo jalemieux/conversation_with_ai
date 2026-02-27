@@ -51,6 +51,7 @@ function ConversationContent() {
     const topicType = searchParams.get('topicType') ?? ''
     const framework = searchParams.get('framework') ?? ''
     const models = (searchParams.get('models') ?? '').split(',').filter(Boolean)
+    const essayMode = searchParams.get('essayMode') !== 'false'
 
     setTopic(augmentedPrompt || rawInput)
 
@@ -59,7 +60,7 @@ function ConversationContent() {
     fetch('/api/conversation', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ rawInput, augmentedPrompt, topicType, framework, models }),
+      body: JSON.stringify({ rawInput, augmentedPrompt, topicType, framework, models, essayMode }),
     }).then((res) => {
       const reader = res.body?.getReader()
       const decoder = new TextDecoder()
