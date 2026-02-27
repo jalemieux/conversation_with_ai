@@ -8,6 +8,18 @@ export const TOPIC_TYPES = [
 
 export type TopicType = (typeof TOPIC_TYPES)[number]
 
+export interface AugmentationEntry {
+  framework: string
+  augmentedPrompt: string
+}
+
+export type AugmentationsMap = Record<TopicType, AugmentationEntry>
+
+export interface MultiAugmenterResult {
+  recommended: TopicType
+  augmentations: AugmentationsMap
+}
+
 export interface AugmenterResult {
   topicType: TopicType
   framework: string

@@ -1,5 +1,28 @@
 import { describe, it, expect } from 'vitest'
-import { buildAugmenterPrompt, parseAugmenterResponse } from './augmenter'
+import { buildAugmenterPrompt, parseAugmenterResponse, TOPIC_TYPES, type MultiAugmenterResult } from './augmenter'
+
+describe('augmenter types', () => {
+  it('exports TOPIC_TYPES with all 5 types', () => {
+    expect(TOPIC_TYPES).toEqual([
+      'prediction', 'opinion', 'comparison', 'trend_analysis', 'open_question',
+    ])
+  })
+
+  it('MultiAugmenterResult has correct shape', () => {
+    const result: MultiAugmenterResult = {
+      recommended: 'prediction',
+      augmentations: {
+        prediction: { framework: 'scenario analysis', augmentedPrompt: 'test' },
+        opinion: { framework: 'steel man vs straw man', augmentedPrompt: 'test' },
+        comparison: { framework: 'strongest case', augmentedPrompt: 'test' },
+        trend_analysis: { framework: 'timeline framing', augmentedPrompt: 'test' },
+        open_question: { framework: 'multiple angles', augmentedPrompt: 'test' },
+      },
+    }
+    expect(result.recommended).toBe('prediction')
+    expect(Object.keys(result.augmentations)).toHaveLength(5)
+  })
+})
 
 describe('Prompt Augmenter', () => {
   describe('buildAugmenterPrompt', () => {
