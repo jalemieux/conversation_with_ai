@@ -73,10 +73,10 @@ The `/api/augment` route returns a `MultiAugmenterResult` — all 5 topic type a
 ```
 1. User types topic → Home page
 2. POST /api/augment → Claude Haiku generates all 5 augmentations + recommends best fit
-3. User reviews augmented prompt → Review page (clickable topic type tags)
-4. POST /api/conversation → SSE stream begins
-5. Round 1: buildSystemPrompt(1) + user prompt → streamText(system, prompt) → 4 models in parallel
-6. Round 2: buildSystemPrompt(2) + reaction prompt → streamText(system, prompt) → 4 models in parallel
+3. User reviews augmented prompt → Review page (clickable topic type tags, essay mode toggle)
+4. POST /api/conversation (includes essayMode boolean) → SSE stream begins
+5. Round 1: if essayMode, buildSystemPrompt(1) + user prompt → streamText(system, prompt) → 4 models in parallel
+6. Round 2: if essayMode, buildSystemPrompt(2) + reaction prompt → streamText(system, prompt) → 4 models in parallel
 7. Responses saved to SQLite after each model completes
 8. User exports via clipboard
 9. (Optional) User clicks speaker icon → useTTS hook fetches /api/tts → OpenAI TTS → audio playback
@@ -167,3 +167,4 @@ responses
 - 2026-02-26: Text-to-Speech — on-demand TTS via OpenAI gpt-4o-mini-tts, unique voice per model, speaker button on all response cards
 - 2026-02-26: System prompt module — extracted behavioural meta-instructions (prose style, deep thinking, current knowledge, word targets) into dedicated system messages, invisible to users
 - 2026-02-26: Auth gate — shared password protection with HMAC cookie, middleware redirect, login page
+- 2026-02-27: Essay mode toggle — boolean toggle on review page (default: on) controls whether system prompts are applied; flows as query param through conversation page to API route
