@@ -6,6 +6,7 @@ import { MODEL_CONFIGS } from '@/lib/models'
 import MarkdownContent from '@/components/MarkdownContent'
 import { useTTS } from '@/hooks/useTTS'
 import { SpeakerButton } from '@/components/SpeakerButton'
+import { CopyButton } from '@/components/CopyButton'
 import type { Conversation } from '@/lib/types'
 
 const MODEL_ACCENT: Record<string, string> = {
@@ -102,10 +103,13 @@ export default function ConversationDetailPage() {
                     <span className={`w-2 h-2 rounded-full flex-shrink-0 ${dot}`} />
                     <span className={`font-medium ${accent}`}>{config.name}</span>
                     <span className="text-xs text-ink-faint">{config.provider} / {config.modelId}</span>
-                    <SpeakerButton
-                      state={getSpeakerState(`${r.round}-${r.model}`)}
-                      onClick={() => tts.toggle(`${r.round}-${r.model}`, r.content, r.model)}
-                    />
+                    <span className="ml-auto flex items-center">
+                      <CopyButton content={r.content} />
+                      <SpeakerButton
+                        state={getSpeakerState(`${r.round}-${r.model}`)}
+                        onClick={() => tts.toggle(`${r.round}-${r.model}`, r.content, r.model)}
+                      />
+                    </span>
                   </summary>
                   <div className="px-5 pb-5 border-t border-border pt-4">
                     <MarkdownContent content={r.content} />
@@ -132,10 +136,13 @@ export default function ConversationDetailPage() {
                     <span className="w-2 h-2 rounded-full flex-shrink-0 bg-round2" />
                     <span className="font-medium text-round2">{config.name}</span>
                     <span className="text-xs text-ink-faint">{config.provider} / {config.modelId}</span>
-                    <SpeakerButton
-                      state={getSpeakerState(`${r.round}-${r.model}`)}
-                      onClick={() => tts.toggle(`${r.round}-${r.model}`, r.content, r.model)}
-                    />
+                    <span className="ml-auto flex items-center">
+                      <CopyButton content={r.content} />
+                      <SpeakerButton
+                        state={getSpeakerState(`${r.round}-${r.model}`)}
+                        onClick={() => tts.toggle(`${r.round}-${r.model}`, r.content, r.model)}
+                      />
+                    </span>
                   </summary>
                   <div className="px-5 pb-5 border-t border-border pt-4">
                     <MarkdownContent content={r.content} />

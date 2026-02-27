@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation'
 import MarkdownContent from '@/components/MarkdownContent'
 import { useTTS } from '@/hooks/useTTS'
 import { SpeakerButton } from '@/components/SpeakerButton'
+import { CopyButton } from '@/components/CopyButton'
 
 interface ModelResponse {
   round: number
@@ -152,10 +153,13 @@ function ConversationContent() {
         <span className={`w-2 h-2 rounded-full flex-shrink-0 ${getDot(r.model, r.round)}`} />
         <span className={`font-medium ${getAccent(r.model, r.round)}`}>{r.modelName}</span>
         <span className="text-xs text-ink-faint">{r.provider} / {r.modelId}</span>
-        <SpeakerButton
-          state={getSpeakerState(`${r.round}-${r.model}`)}
-          onClick={() => tts.toggle(`${r.round}-${r.model}`, r.content, r.model)}
-        />
+        <span className="ml-auto flex items-center">
+          <CopyButton content={r.content} />
+          <SpeakerButton
+            state={getSpeakerState(`${r.round}-${r.model}`)}
+            onClick={() => tts.toggle(`${r.round}-${r.model}`, r.content, r.model)}
+          />
+        </span>
       </summary>
       <div className="px-5 pb-5 border-t border-border pt-4">
         <MarkdownContent content={r.content} />

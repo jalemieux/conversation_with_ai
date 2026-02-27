@@ -24,7 +24,7 @@ export function SpeakerButton({ state, onClick }: SpeakerButtonProps) {
       }}
       disabled={isLoading}
       aria-label={label}
-      className={`ml-auto p-1.5 rounded-lg transition-colors cursor-pointer ${
+      className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
         state === 'playing'
           ? 'text-amber hover:text-amber/80'
           : state === 'error'
