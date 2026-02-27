@@ -1,5 +1,21 @@
 <p align="center">
-  <img src="docs/assets/hero-banner.png" alt="AI Roundtable" />
+  <img src="docs/assets/screenshot-home.png" alt="Topic Input" width="700" />
+  <br><em>Topic Input — choose your question and panel</em>
+</p>
+
+<p align="center">
+  <img src="docs/assets/screenshot-review.png" alt="Prompt Review" width="700" />
+  <br><em>Prompt Review — pick a framing and refine</em>
+</p>
+
+<p align="center">
+  <img src="docs/assets/screenshot-round1.png" alt="Round 1" width="700" />
+  <br><em>Round 1 — models stream initial responses</em>
+</p>
+
+<p align="center">
+  <img src="docs/assets/screenshot-round2.png" alt="Round 2" width="700" />
+  <br><em>Round 2 — models react to each other</em>
 </p>
 
 # Conversation With AI
