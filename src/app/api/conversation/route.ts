@@ -2,7 +2,8 @@ import { streamText } from 'ai'
 import { NextResponse } from 'next/server'
 import { db } from '@/db'
 import { conversations, responses } from '@/db/schema'
-import { getModelProvider, MODEL_CONFIGS } from '@/lib/models'
+import { getModelProvider, getSearchConfig, MODEL_CONFIGS } from '@/lib/models'
+import { extractSources } from '@/lib/sources'
 import { buildRound1Prompt, buildRound2Prompt } from '@/lib/orchestrator'
 import type { Round1Response } from '@/lib/orchestrator'
 import { randomUUID } from 'crypto'
@@ -42,11 +43,16 @@ export async function POST(request: Request) {
           models.map(async (modelKey: string) => {
             const config = MODEL_CONFIGS[modelKey]
             const prompt = buildRound1Prompt(augmentedPrompt, config.name)
+            const searchConfig = getSearchConfig(modelKey)
 
             const result = streamText({
               model: getModelProvider(modelKey),
               prompt,
               ...(config.providerOptions && { providerOptions: config.providerOptions }),
+              ...(searchConfig.providerOptions && {
+                providerOptions: { ...config.providerOptions, ...searchConfig.providerOptions },
+              }),
+              ...(searchConfig.tools && { tools: searchConfig.tools, maxSteps: 2 }),
             })
 
             let fullText = ''
@@ -55,6 +61,8 @@ export async function POST(request: Request) {
               send('token', { round: 1, model: modelKey, modelName: config.name, provider: config.provider, modelId: config.modelId, chunk })
             }
 
+            const sources = await extractSources(result)
+
             const respId = randomUUID()
             await db.insert(responses).values({
               id: respId,
@@ -62,9 +70,10 @@ export async function POST(request: Request) {
               round: 1,
               model: modelKey,
               content: fullText,
+              sources: sources.length > 0 ? JSON.stringify(sources) : null,
             })
 
-            send('response', { round: 1, model: modelKey, modelName: config.name, provider: config.provider, modelId: config.modelId, content: fullText })
+            send('response', { round: 1, model: modelKey, modelName: config.name, provider: config.provider, modelId: config.modelId, content: fullText, sources })
             return { model: config.name, content: fullText }
           })
         )
