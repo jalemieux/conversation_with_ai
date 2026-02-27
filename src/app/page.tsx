@@ -119,7 +119,10 @@ export default function Home() {
                   }`}
                 >
                   <span className={`w-2.5 h-2.5 rounded-full transition-all duration-200 ${colors.dot} ${active ? 'opacity-100' : 'opacity-20'}`} />
-                  {config.name}
+                  <span className="flex flex-col items-start leading-tight">
+                    <span>{config.name}</span>
+                    <span className={`text-[10px] font-normal ${active ? 'opacity-60' : 'opacity-40'}`}>{config.modelId}</span>
+                  </span>
                 </button>
               )
             })}
