@@ -2,6 +2,7 @@
 
 import { Suspense, useState, useEffect, useRef } from 'react'
 import { useSearchParams } from 'next/navigation'
+import MarkdownContent from '@/components/MarkdownContent'
 
 interface ModelResponse {
   round: number
@@ -127,13 +128,16 @@ function ConversationContent() {
             {round1.map((r, i) => (
               <div key={i} className="bg-gray-900 border border-gray-800 rounded-lg p-5">
                 <h3 className="font-medium text-blue-400 mb-2">{r.modelName}</h3>
-                <div className="text-gray-300 whitespace-pre-wrap">{r.content}</div>
+                <MarkdownContent content={r.content} />
               </div>
             ))}
             {streaming1.map((r) => (
               <div key={`streaming-${r.model}`} className="bg-gray-900 border border-gray-800 rounded-lg p-5">
                 <h3 className="font-medium text-blue-400 mb-2">{r.modelName}</h3>
-                <div className="text-gray-300 whitespace-pre-wrap">{r.content}<span className="animate-pulse">▍</span></div>
+                <div>
+                  <MarkdownContent content={r.content} />
+                  <span className="animate-pulse">▍</span>
+                </div>
               </div>
             ))}
           </div>
@@ -147,13 +151,16 @@ function ConversationContent() {
             {round2.map((r, i) => (
               <div key={i} className="bg-gray-900 border border-gray-800 rounded-lg p-5">
                 <h3 className="font-medium text-purple-400 mb-2">{r.modelName}</h3>
-                <div className="text-gray-300 whitespace-pre-wrap">{r.content}</div>
+                <MarkdownContent content={r.content} />
               </div>
             ))}
             {streaming2.map((r) => (
               <div key={`streaming-${r.model}`} className="bg-gray-900 border border-gray-800 rounded-lg p-5">
                 <h3 className="font-medium text-purple-400 mb-2">{r.modelName}</h3>
-                <div className="text-gray-300 whitespace-pre-wrap">{r.content}<span className="animate-pulse">▍</span></div>
+                <div>
+                  <MarkdownContent content={r.content} />
+                  <span className="animate-pulse">▍</span>
+                </div>
               </div>
             ))}
           </div>
