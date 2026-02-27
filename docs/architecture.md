@@ -53,6 +53,10 @@
 | TTS API Route | `src/app/api/tts/route.ts` | Proxy to OpenAI gpt-4o-mini-tts |
 | useTTS Hook | `src/hooks/useTTS.ts` | Audio playback state management (toggle/stop) |
 | SpeakerButton | `src/components/SpeakerButton.tsx` | Speaker icon with idle/loading/playing/error states |
+| Auth Utils | `src/lib/auth.ts` | HMAC token generation, password verification, timing-safe comparison |
+| Auth Middleware | `src/middleware.ts` | Auth gate, checks cookie on all routes, redirects to /login if missing/invalid |
+| Login Page | `src/app/login/page.tsx` | Password entry form |
+| Auth API Route | `src/app/api/auth/route.ts` | Password validation endpoint, sets HttpOnly auth cookie |
 
 ## Augmenter Types
 
@@ -141,6 +145,20 @@ responses
 - User prompt and system prompt are independently testable and editable
 - Round-specific additions (word counts) are isolated in one place
 
+### ADR-002: Shared Password Gate
+
+**Status:** Accepted
+
+**Context:** The app uses API keys for multiple AI providers. Deploying without access control would let anyone with the URL consume those keys. Need a simple mechanism to prevent unauthorized usage.
+
+**Decision:** Implement a shared password gate using a single `CWAI_ACCESS_PASSWORD` environment variable. On login, the server verifies the password and sets an HMAC-signed HttpOnly cookie. Middleware checks this cookie on every request and redirects unauthenticated users to `/login`.
+
+**Consequences:**
+- Single env var — no database changes, no user management, no OAuth setup
+- HMAC cookie is tamper-proof and HttpOnly (not accessible to client JS)
+- Timing-safe comparison prevents timing attacks on password verification
+- Easy to upgrade to per-user auth later without changing the middleware contract
+
 ## Changelog
 
 - 2026-02-26: Initial implementation — full conversation flow with 4 models, 2 rounds, SSE streaming, export
@@ -148,3 +166,4 @@ responses
 - 2026-02-26: Multi-augmentation — generate all 5 topic type augmentations in one call, clickable tags on review page to switch between framings
 - 2026-02-26: Text-to-Speech — on-demand TTS via OpenAI gpt-4o-mini-tts, unique voice per model, speaker button on all response cards
 - 2026-02-26: System prompt module — extracted behavioural meta-instructions (prose style, deep thinking, current knowledge, word targets) into dedicated system messages, invisible to users
+- 2026-02-26: Auth gate — shared password protection with HMAC cookie, middleware redirect, login page
