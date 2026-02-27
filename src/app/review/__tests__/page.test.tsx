@@ -22,9 +22,9 @@ vi.mock('next/navigation', () => ({
 
 import ReviewPage from '../page'
 
-function getTextarea(): HTMLTextAreaElement {
+function getAugmentedPromptTextarea(): HTMLTextAreaElement {
   const textareas = screen.getAllByRole('textbox')
-  return textareas[0] as HTMLTextAreaElement
+  return textareas[1] as HTMLTextAreaElement
 }
 
 describe('ReviewPage', () => {
@@ -43,13 +43,13 @@ describe('ReviewPage', () => {
 
   it('shows recommended type augmented prompt by default', () => {
     render(<ReviewPage />)
-    expect(getTextarea()).toHaveValue('pred prompt')
+    expect(getAugmentedPromptTextarea()).toHaveValue('pred prompt')
   })
 
   it('switches prompt when clicking a different tag', () => {
     render(<ReviewPage />)
     fireEvent.click(screen.getByText('opinion'))
-    expect(getTextarea()).toHaveValue('opinion prompt')
+    expect(getAugmentedPromptTextarea()).toHaveValue('opinion prompt')
   })
 
   it('shows framework badge matching selected type', () => {

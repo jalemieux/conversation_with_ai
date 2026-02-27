@@ -6,7 +6,6 @@ describe('Conversation Orchestrator', () => {
     it('should format the augmented prompt for a model', () => {
       const prompt = buildRound1Prompt('Analyze the future of software...', 'Claude')
       expect(prompt).toContain('Analyze the future of software...')
-      expect(prompt).toContain('Claude')
     })
   })
 

@@ -4,6 +4,7 @@ import { db } from '@/db'
 import { conversations, responses } from '@/db/schema'
 import { getModelProvider, MODEL_CONFIGS } from '@/lib/models'
 import { buildRound1Prompt, buildRound2Prompt } from '@/lib/orchestrator'
+import { buildSystemPrompt } from '@/lib/system-prompt'
 import type { Round1Response } from '@/lib/orchestrator'
 import { randomUUID } from 'crypto'
 
@@ -45,6 +46,7 @@ export async function POST(request: Request) {
 
             const result = streamText({
               model: getModelProvider(modelKey),
+              system: buildSystemPrompt(1),
               prompt,
               ...(config.providerOptions && { providerOptions: config.providerOptions }),
             })
@@ -81,6 +83,7 @@ export async function POST(request: Request) {
 
             const result = streamText({
               model: getModelProvider(modelKey),
+              system: buildSystemPrompt(2),
               prompt,
               ...(config.providerOptions && { providerOptions: config.providerOptions }),
             })
