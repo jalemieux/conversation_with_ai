@@ -90,6 +90,7 @@ function ReviewContent() {
       </div>
 
       <div className="animate-fade-up stagger-2 mb-2">
+        <p className="text-xs font-medium tracking-widest uppercase text-ink-faint mb-2">Topic Type</p>
         <div className="flex gap-2 flex-wrap mb-2">
           {TOPIC_TYPES.map((type) => (
             <button
@@ -98,7 +99,7 @@ function ReviewContent() {
               className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all duration-200 cursor-pointer ${
                 type === selectedType
                   ? 'bg-amber-faint text-amber ring-1 ring-amber/30'
-                  : 'bg-cream-dark text-ink-faint hover:text-ink-muted'
+                  : 'bg-card text-ink-muted ring-1 ring-border hover:ring-border-strong hover:text-ink'
               }`}
             >
               {type}
