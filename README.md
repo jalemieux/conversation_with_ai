@@ -8,28 +8,24 @@ LLMs are increasingly capable, but comparing their reasoning on the same prompt 
 
 ## How It Works
 
-```
-                  ┌──────────────┐
-  User enters     │   Augmenter  │   Claude Haiku rewrites the topic
-  a topic    ───▶ │  (5 framings)│   through 5 analytical frameworks
-                  └──────┬───────┘
-                         │
-                         ▼
-                  ┌──────────────┐
-                  │ Review Page  │   User picks the best framing
-                  │ (select one) │   or edits the augmented prompt
-                  └──────┬───────┘
-                         │
-              ┌──────────┼──────────┐
-              ▼          ▼          ▼          ▼
-         ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐
-         │ Claude │ │  GPT   │ │ Gemini │ │  Grok  │   Round 1
-         └───┬────┘ └───┬────┘ └───┬────┘ └───┬────┘   Initial takes
-             │          │          │          │         (parallel SSE)
-             ▼          ▼          ▼          ▼
-         ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐
-         │ Claude │ │  GPT   │ │ Gemini │ │  Grok  │   Round 2
-         └────────┘ └────────┘ └────────┘ └────────┘   React to each other
+```mermaid
+flowchart TD
+    A["🎯 User enters a topic"] --> B["Augmenter\n(5 framings)"]
+    B --> C["Review Page\n(select one)"]
+    C --> D1["Claude"] & D2["GPT"] & D3["Gemini"] & D4["Grok"]
+
+    subgraph "Round 1 — Initial takes (parallel SSE)"
+        D1 & D2 & D3 & D4
+    end
+
+    D1 --> E1["Claude"]
+    D2 --> E2["GPT"]
+    D3 --> E3["Gemini"]
+    D4 --> E4["Grok"]
+
+    subgraph "Round 2 — React to each other"
+        E1 & E2 & E3 & E4
+    end
 ```
 
 1. **Augmentation** — A single Haiku call generates 5 analytical framings (prediction, opinion, comparison, trend analysis, open question) and recommends the best fit
