@@ -1,2 +1,52 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
+
+@theme {
+  /* ── Warm editorial palette ── */
+  --color-cream: #faf7f2;
+  --color-cream-dark: #f0ebe3;
+  --color-ink: #1a1a1a;
+  --color-ink-light: #3d3d3d;
+  --color-ink-muted: #6b6b6b;
+  --color-ink-faint: #9a9a9a;
+  --color-amber: #c2742f;
+  --color-amber-light: #e8a66a;
+  --color-amber-faint: #fdf4eb;
+  --color-card: #ffffff;
+  --color-card-hover: #fdfcfa;
+  --color-border: #e8e2d9;
+  --color-border-strong: #d4cec4;
+  --color-danger: #c0392b;
+
+  /* ── Model accent colors ── */
+  --color-claude: #d4783c;
+  --color-gpt: #2d8c6f;
+  --color-gemini: #4a6fa5;
+  --color-grok: #8b5cf6;
+  --color-round2: #9d4e8c;
+
+  /* ── Model accent backgrounds (faint) ── */
+  --color-claude-faint: #fdf0e6;
+  --color-gpt-faint: #e6f5ef;
+  --color-gemini-faint: #eaf0f8;
+  --color-grok-faint: #f3edfe;
+
+  /* ── Animations ── */
+  --animate-fade-up: fade-up 0.4s ease-out both;
+  --animate-fade-in: fade-in 0.3s ease-out both;
+}
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Ensure body gets the warm cream */
+body {
+  background-color: var(--color-cream);
+}

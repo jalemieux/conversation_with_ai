@@ -231,7 +231,7 @@ function ConversationContent() {
         <div className="mt-8 animate-fade-up flex flex-wrap gap-2">
           <button
             onClick={() => { window.location.href = '/' }}
-            className="px-5 py-2.5 bg-ink text-cream hover:bg-ink-light rounded-xl font-medium transition-all duration-200 text-sm"
+            className="px-5 py-2.5 bg-ink text-cream hover:bg-ink-light rounded-xl font-medium transition-all duration-200 text-sm shadow-[0_2px_8px_rgba(26,26,26,0.15)] hover:shadow-[0_2px_12px_rgba(26,26,26,0.25)] cursor-pointer"
           >
             New Conversation
           </button>
@@ -246,7 +246,7 @@ function ConversationContent() {
                   })
                 })
             }}
-            className="px-5 py-2.5 bg-card border border-border hover:border-border-strong rounded-xl font-medium transition-all duration-200 text-sm text-ink-muted hover:text-ink"
+            className="px-5 py-2.5 bg-card border border-border hover:border-border-strong hover:shadow-[0_1px_4px_rgba(0,0,0,0.06)] rounded-xl font-medium transition-all duration-200 text-sm text-ink-muted hover:text-ink cursor-pointer"
           >
             Copy Markdown
           </button>
@@ -261,7 +261,7 @@ function ConversationContent() {
                   })
                 })
             }}
-            className="px-5 py-2.5 bg-card border border-border hover:border-border-strong rounded-xl font-medium transition-all duration-200 text-sm text-ink-muted hover:text-ink"
+            className="px-5 py-2.5 bg-card border border-border hover:border-border-strong hover:shadow-[0_1px_4px_rgba(0,0,0,0.06)] rounded-xl font-medium transition-all duration-200 text-sm text-ink-muted hover:text-ink cursor-pointer"
           >
             Copy Text
           </button>
@@ -277,7 +277,7 @@ function ConversationContent() {
                   })
                 })
             }}
-            className="px-5 py-2.5 bg-card border border-border hover:border-border-strong rounded-xl font-medium transition-all duration-200 text-sm text-ink-muted hover:text-ink"
+            className="px-5 py-2.5 bg-card border border-border hover:border-border-strong hover:shadow-[0_1px_4px_rgba(0,0,0,0.06)] rounded-xl font-medium transition-all duration-200 text-sm text-ink-muted hover:text-ink cursor-pointer"
           >
             Copy X Thread
           </button>
