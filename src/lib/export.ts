@@ -22,6 +22,13 @@ export function exportMarkdown(conversation: Conversation): string {
       lines.push(`### ${getModelName(resp.model)}`)
       lines.push('')
       lines.push(resp.content)
+      if (resp.sources && resp.sources.length > 0) {
+        lines.push('')
+        lines.push('**Sources:**')
+        for (const s of resp.sources) {
+          lines.push(`- [${s.title || s.url}](${s.url})`)
+        }
+      }
       lines.push('')
     }
   }
@@ -45,6 +52,12 @@ export function exportText(conversation: Conversation): string {
     for (const resp of roundResponses) {
       lines.push(`[${getModelName(resp.model)}]`)
       lines.push(resp.content)
+      if (resp.sources && resp.sources.length > 0) {
+        lines.push('Sources:')
+        for (const s of resp.sources) {
+          lines.push(`- ${s.title || s.url}: ${s.url}`)
+        }
+      }
       lines.push('')
     }
   }

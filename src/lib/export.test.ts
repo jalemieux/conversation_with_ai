@@ -40,6 +40,48 @@ describe('Export Utilities', () => {
     })
   })
 
+  describe('exportMarkdown with sources', () => {
+    it('should include sources in markdown export', () => {
+      const conversation = {
+        ...mockConversation,
+        responses: [
+          {
+            id: '1', round: 1, model: 'claude', content: 'Response text',
+            sources: [
+              { url: 'https://example.com', title: 'Example' },
+            ],
+          },
+          { id: '2', round: 1, model: 'gpt4', content: 'GPT response' },
+          { id: '3', round: 2, model: 'claude', content: 'Round 2' },
+        ],
+      } as any
+
+      const md = exportMarkdown(conversation)
+      expect(md).toContain('**Sources:**')
+      expect(md).toContain('[Example](https://example.com)')
+    })
+  })
+
+  describe('exportText with sources', () => {
+    it('should include sources in text export', () => {
+      const conversation = {
+        ...mockConversation,
+        responses: [
+          {
+            id: '1', round: 1, model: 'claude', content: 'Response text',
+            sources: [
+              { url: 'https://example.com', title: 'Example' },
+            ],
+          },
+        ],
+      } as any
+
+      const text = exportText(conversation)
+      expect(text).toContain('Sources:')
+      expect(text).toContain('Example: https://example.com')
+    })
+  })
+
   describe('exportXThread', () => {
     it('should produce an array of tweets under 280 chars', () => {
       const tweets = exportXThread(mockConversation)
