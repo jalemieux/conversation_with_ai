@@ -16,7 +16,10 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   return NextResponse.json({
     ...conv[0],
     models: JSON.parse(conv[0].models),
-    responses: resps,
+    responses: resps.map((r) => ({
+      ...r,
+      sources: r.sources ? JSON.parse(r.sources) : undefined,
+    })),
   })
 }
 
