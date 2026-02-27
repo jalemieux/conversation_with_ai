@@ -6,7 +6,7 @@ export interface Round1Response {
 export function buildRound1Prompt(augmentedPrompt: string, modelName: string): string {
   return `You are ${modelName}, participating in a roundtable discussion with other frontier AI models. A moderator has posed the following topic for discussion.
 
-Give your genuine, thoughtful perspective. Be substantive and specific — this will be published as a conversation transcript.
+Give your genuine, thoughtful perspective. Be substantive and specific — this will be published as a conversation transcript. Aim for a thorough response of roughly 800–1200 words: use structured sections or headers where they help, and go deep enough to be genuinely useful without becoming exhaustive.
 
 Topic:
 ${augmentedPrompt}`
@@ -35,5 +35,5 @@ Here are the other models' initial responses:
 
 ${otherResponses}
 
-Now react to what the others said. You may agree, disagree, build on ideas, or offer new perspectives. Be direct and substantive — avoid generic praise. This is Round 2 of a published conversation.`
+Now react to what the others said. You may agree, disagree, build on ideas, or offer new perspectives. Be direct and substantive — avoid generic praise. Aim for roughly 600–1000 words. This is Round 2 of a published conversation.`
 }
