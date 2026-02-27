@@ -44,6 +44,8 @@ Principles:
 - Preserve the user's nuance and framing
 - Don't over-constrain with too many sub-questions
 - Some framings may fit the input better than others — do your best for each
+- Instruct the model to think deeply and carefully — the questions asked can be complex and nuanced
+- Instruct the model to use the most up-to-date knowledge available
 
 Also pick which topic_type best fits the input as "recommended".
 

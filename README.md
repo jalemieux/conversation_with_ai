@@ -20,11 +20,11 @@
 
 # Conversation With AI
 
-A structured roundtable discussion platform that orchestrates frontier AI models into multi-round debates on any topic. Users pose a question, an AI augmenter reframes it through multiple analytical lenses, and a panel of models — Claude, GPT, Gemini, and Grok — deliberate across two rounds with real-time streaming.
+A structured roundtable discussion platform that orchestrates frontier AI models into multi-round debates on any topic. Users pose a question, an AI augmenter reframes it through multiple analytical lenses, and a panel of models — Claude, GPT, Gemini, and Grok — deliberate across two rounds.
 
 ## Why This Exists
 
-LLMs are increasingly capable, but comparing their reasoning on the same prompt is still hard. This app turns that comparison into a first-class experience: type a topic, watch four models argue, and export the result.
+With very capable models, different perspectives are interesting. This app turns that comparison into a first-class experience: type a topic, watch four models argue, and export the result.
 
 ## How It Works
 
@@ -65,9 +65,20 @@ flowchart TD
 | **SQLite + Drizzle** | Zero-config persistence, no external database dependency, type-safe queries |
 | **Extended thinking** enabled | Claude and Gemini use thinking budgets; GPT uses reasoning effort — models show their best work |
 
+## Models
+
+| Provider | Model | Features |
+|----------|-------|----------|
+| Anthropic | `claude-opus-4-6` | Thinking (5k token budget) |
+| OpenAI | `gpt-5.1` | Reasoning effort: medium |
+| Google | `gemini-3.1-pro-preview` | Thinking (5k token budget) |
+| xAI | `grok-4-1-fast-reasoning` | — |
+
+Augmentation uses Claude Haiku 4.5 for speed and cost.
+
 ## Tech Stack
 
-Next.js 15 · React 19 · TypeScript · Tailwind CSS 4 · Vercel AI SDK · Drizzle ORM · SQLite · Vitest
+Next.js 16 · React 19 · TypeScript · Tailwind CSS 4 · Vercel AI SDK 6 · Drizzle ORM · SQLite · Vitest
 
 ## Project Structure
 
@@ -76,12 +87,14 @@ src/
 ├── app/                        # Next.js pages + API routes
 │   ├── page.tsx                # Home — topic input + model selector
 │   ├── review/page.tsx         # Augmentation review + framing picker
-│   ├── conversation/page.tsx   # Live streaming discussion
+│   ├── conversation/
+│   │   ├── page.tsx            # Live streaming discussion
+│   │   └── [id]/page.tsx       # Conversation history detail view
 │   └── api/
 │       ├── augment/            # POST — multi-augmentation
 │       ├── conversation/       # POST — SSE stream (rounds 1 & 2)
 │       ├── tts/                # POST — text-to-speech via OpenAI
-│       └── conversations/      # GET — history + detail
+│       └── conversations/      # GET list, GET/DELETE by id
 ├── lib/
 │   ├── models.ts               # 4 provider configs (Claude, GPT, Gemini, Grok)
 │   ├── augmenter.ts            # Prompt rewriting + 5-framing generation
