@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense, useState, useEffect, useRef } from 'react'
+import { Suspense, useState, useEffect, useRef, useCallback } from 'react'
 import { useSearchParams } from 'next/navigation'
 import MarkdownContent from '@/components/MarkdownContent'
 import { useTTS } from '@/hooks/useTTS'
@@ -15,6 +15,12 @@ interface ModelResponse {
   modelId: string
   content: string
   sources?: { url: string; title: string }[]
+}
+
+interface ModelState {
+  loading: boolean
+  error: string | null
+  response: ModelResponse | null
 }
 
 const MODEL_ACCENT: Record<string, string> = {
@@ -33,15 +39,30 @@ const MODEL_DOT: Record<string, string> = {
 
 function ConversationContent() {
   const searchParams = useSearchParams()
-  const [responses, setResponses] = useState<ModelResponse[]>([])
-  const [currentRound, setCurrentRound] = useState(0)
-  const [done, setDone] = useState(false)
-  const [error, setError] = useState<string | null>(null)
   const [conversationId, setConversationId] = useState<string | null>(null)
-  const [streamingModels, setStreamingModels] = useState<Map<string, { round: number; model: string; modelName: string; provider: string; modelId: string }>>(new Map())
+  const [round1States, setRound1States] = useState<Record<string, ModelState>>({})
+  const [round2States, setRound2States] = useState<Record<string, ModelState>>({})
+  const [round2Started, setRound2Started] = useState(false)
   const [topic, setTopic] = useState('')
+  const [error, setError] = useState<string | null>(null)
   const startedRef = useRef(false)
   const tts = useTTS()
+
+  const models = (searchParams.get('models') ?? '').split(',').filter(Boolean)
+  const essayMode = searchParams.get('essayMode') !== 'false'
+
+  const callModel = useCallback(async (convId: string, modelKey: string, round: number): Promise<ModelResponse> => {
+    const res = await fetch('/api/conversation/respond', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ conversationId: convId, model: modelKey, round, essayMode }),
+    })
+    if (!res.ok) {
+      const err = await res.json()
+      throw new Error(err.error ?? 'Request failed')
+    }
+    return res.json()
+  }, [essayMode])
 
   useEffect(() => {
     if (startedRef.current) return
@@ -51,86 +72,66 @@ function ConversationContent() {
     const augmentedPrompt = searchParams.get('augmentedPrompt') ?? ''
     const topicType = searchParams.get('topicType') ?? ''
     const framework = searchParams.get('framework') ?? ''
-    const models = (searchParams.get('models') ?? '').split(',').filter(Boolean)
-    const essayMode = searchParams.get('essayMode') !== 'false'
 
     setTopic(augmentedPrompt || rawInput)
 
     if (!augmentedPrompt || models.length === 0) return
 
+    // Initialize round 1 loading states
+    const initialStates: Record<string, ModelState> = {}
+    models.forEach((m) => { initialStates[m] = { loading: true, error: null, response: null } })
+    setRound1States(initialStates)
+
+    // Create conversation, then fire parallel model calls
     fetch('/api/conversation', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ rawInput, augmentedPrompt, topicType, framework, models, essayMode }),
-    }).then((res) => {
-      const reader = res.body?.getReader()
-      const decoder = new TextDecoder()
-
-      if (!reader) return
-
-      let buffer = ''
-
-      const read = async () => {
-        while (true) {
-          const { done: streamDone, value } = await reader.read()
-          if (streamDone) break
-
-          buffer += decoder.decode(value, { stream: true })
-
-          const lines = buffer.split('\n')
-          buffer = lines.pop() ?? ''
-
-          let eventType = ''
-          for (const line of lines) {
-            if (line.startsWith('event: ')) {
-              eventType = line.slice(7)
-            } else if (line.startsWith('data: ') && eventType) {
-              const data = JSON.parse(line.slice(6))
-
-              switch (eventType) {
-                case 'round_start':
-                  setCurrentRound(data.round)
-                  break
-                case 'token': {
-                  const key = `${data.round}-${data.model}`
-                  setStreamingModels((prev) => {
-                    if (prev.has(key)) return prev
-                    const next = new Map(prev)
-                    next.set(key, { round: data.round, model: data.model, modelName: data.modelName, provider: data.provider, modelId: data.modelId })
-                    return next
-                  })
-                  break
-                }
-                case 'response':
-                  setStreamingModels((prev) => {
-                    const next = new Map(prev)
-                    next.delete(`${data.round}-${data.model}`)
-                    return next
-                  })
-                  setResponses((prev) => [...prev, data])
-                  break
-                case 'done':
-                  setConversationId(data.conversationId)
-                  setDone(true)
-                  break
-                case 'error':
-                  setError(data.message)
-                  break
-              }
-              eventType = ''
-            }
-          }
-        }
-      }
-
-      read()
+      body: JSON.stringify({ rawInput, augmentedPrompt, topicType, framework, models }),
     })
-  }, [searchParams])
+      .then((res) => res.json())
+      .then(({ conversationId: convId }) => {
+        setConversationId(convId)
 
-  const round1 = responses.filter((r) => r.round === 1)
-  const round2 = responses.filter((r) => r.round === 2)
-  const streaming1 = Array.from(streamingModels.values()).filter((r) => r.round === 1)
-  const streaming2 = Array.from(streamingModels.values()).filter((r) => r.round === 2)
+        // Fire all Round 1 calls in parallel
+        models.forEach((modelKey) => {
+          callModel(convId, modelKey, 1)
+            .then((response) => {
+              setRound1States((prev) => ({ ...prev, [modelKey]: { loading: false, error: null, response } }))
+            })
+            .catch((err) => {
+              setRound1States((prev) => ({ ...prev, [modelKey]: { loading: false, error: err.message, response: null } }))
+            })
+        })
+      })
+      .catch((err) => setError(err.message))
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const startRound2 = () => {
+    if (!conversationId) return
+    setRound2Started(true)
+
+    const initialStates: Record<string, ModelState> = {}
+    models.forEach((m) => { initialStates[m] = { loading: true, error: null, response: null } })
+    setRound2States(initialStates)
+
+    models.forEach((modelKey) => {
+      callModel(conversationId, modelKey, 2)
+        .then((response) => {
+          setRound2States((prev) => ({ ...prev, [modelKey]: { loading: false, error: null, response } }))
+        })
+        .catch((err) => {
+          setRound2States((prev) => ({ ...prev, [modelKey]: { loading: false, error: err.message, response: null } }))
+        })
+    })
+  }
+
+  const round1Responses = Object.values(round1States).filter((s) => s.response).map((s) => s.response!)
+  const round1Loading = Object.values(round1States).some((s) => s.loading)
+  const round1Done = Object.keys(round1States).length > 0 && !round1Loading
+  const round2Loading = Object.values(round2States).some((s) => s.loading)
+  const round2Done = round2Started && !round2Loading
+  const allDone = round1Done && (!round2Started || round2Done)
 
   const getAccent = (model: string, round: number) => {
     if (round === 2) return 'text-round2'
@@ -191,12 +192,19 @@ function ConversationContent() {
     </details>
   )
 
-  const StreamingCard = ({ r }: { r: { model: string; modelName: string; provider: string; modelId: string; round: number } }) => (
+  const LoadingCard = ({ modelKey, round }: { modelKey: string; round: number }) => (
     <div className="bg-card border border-border rounded-xl overflow-hidden animate-fade-up px-5 py-4 flex items-center gap-3">
-      <span className={`w-2 h-2 rounded-full flex-shrink-0 ${getDot(r.model, r.round)}`} />
-      <span className={`font-medium ${getAccent(r.model, r.round)}`}>{r.modelName}</span>
-      <span className="text-xs text-ink-faint">{r.provider} / {r.modelId}</span>
+      <span className={`w-2 h-2 rounded-full flex-shrink-0 ${getDot(modelKey, round)}`} />
+      <span className={`font-medium ${getAccent(modelKey, round)}`}>{modelKey}</span>
       <span className="ml-auto w-4 h-4 border-2 border-ink-faint/30 border-t-amber rounded-full animate-spin" />
+    </div>
+  )
+
+  const ErrorCard = ({ modelKey, message, round }: { modelKey: string; message: string; round: number }) => (
+    <div className="bg-danger/5 border border-danger/20 rounded-xl overflow-hidden animate-fade-up px-5 py-4 flex items-center gap-3">
+      <span className={`w-2 h-2 rounded-full flex-shrink-0 ${getDot(modelKey, round)}`} />
+      <span className={`font-medium ${getAccent(modelKey, round)}`}>{modelKey}</span>
+      <span className="text-danger text-sm ml-2">{message}</span>
     </div>
   )
 
@@ -222,55 +230,61 @@ function ConversationContent() {
         </div>
       )}
 
-      {(round1.length > 0 || streaming1.length > 0) && (
+      {Object.keys(round1States).length > 0 && (
         <div className="mb-10">
           <div className="flex items-center gap-3 mb-5 animate-fade-up">
             <p className="text-xs font-medium tracking-widest uppercase text-ink-faint">Round 1 — Initial Responses</p>
             <div className="flex-1 h-px bg-border" />
           </div>
           <div className="space-y-3">
-            {round1.map((r, i) => (
-              <ResponseCard key={i} r={r} />
-            ))}
-            {streaming1.map((r) => (
-              <StreamingCard key={`streaming-${r.model}`} r={r} />
-            ))}
+            {models.map((modelKey) => {
+              const state = round1States[modelKey]
+              if (!state) return null
+              if (state.response) return <ResponseCard key={modelKey} r={state.response} />
+              if (state.error) return <ErrorCard key={modelKey} modelKey={modelKey} message={state.error} round={1} />
+              return <LoadingCard key={modelKey} modelKey={modelKey} round={1} />
+            })}
           </div>
         </div>
       )}
 
-      {(round2.length > 0 || streaming2.length > 0) && (
+      {round2Started && (
         <div className="mb-10">
           <div className="flex items-center gap-3 mb-5 animate-fade-up">
             <p className="text-xs font-medium tracking-widest uppercase text-ink-faint">Round 2 — Reactions</p>
             <div className="flex-1 h-px bg-border" />
           </div>
           <div className="space-y-3">
-            {round2.map((r, i) => (
-              <ResponseCard key={i} r={r} />
-            ))}
-            {streaming2.map((r) => (
-              <StreamingCard key={`streaming-${r.model}`} r={r} />
-            ))}
+            {models.map((modelKey) => {
+              const state = round2States[modelKey]
+              if (!state) return null
+              if (state.response) return <ResponseCard key={modelKey} r={state.response} />
+              if (state.error) return <ErrorCard key={modelKey} modelKey={modelKey} message={state.error} round={2} />
+              return <LoadingCard key={modelKey} modelKey={modelKey} round={2} />
+            })}
           </div>
         </div>
       )}
 
-      {!done && !error && (
+      {round1Loading && (
         <div className="text-center py-10 animate-fade-in">
           <div className="inline-flex items-center gap-3 text-ink-muted">
             <span className="w-5 h-5 border-2 border-ink-faint/30 border-t-amber rounded-full animate-spin" />
-            {currentRound > 0
-              ? `Round ${currentRound} in progress... (${
-                  currentRound === 1 ? round1.length : round2.length
-                } responses received)`
-              : 'Starting conversation...'}
+            Round 1 in progress... ({round1Responses.length} of {models.length} responses received)
           </div>
         </div>
       )}
 
-      {done && (
+      {allDone && (
         <div className="mt-8 animate-fade-up flex flex-wrap gap-2">
+          {round1Done && !round2Started && (
+            <button
+              onClick={startRound2}
+              className="px-5 py-2.5 bg-amber text-cream hover:bg-amber-dark rounded-xl font-medium transition-all duration-200 text-sm shadow-[0_2px_8px_rgba(26,26,26,0.15)] hover:shadow-[0_2px_12px_rgba(26,26,26,0.25)] cursor-pointer"
+            >
+              Start Round 2
+            </button>
+          )}
           <button
             onClick={() => { window.location.href = '/' }}
             className="px-5 py-2.5 bg-ink text-cream hover:bg-ink-light rounded-xl font-medium transition-all duration-200 text-sm shadow-[0_2px_8px_rgba(26,26,26,0.15)] hover:shadow-[0_2px_12px_rgba(26,26,26,0.25)] cursor-pointer"

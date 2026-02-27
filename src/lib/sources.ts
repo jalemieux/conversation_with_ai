@@ -2,7 +2,7 @@ import type { Source } from './types'
 
 export type { Source }
 
-export async function extractSources(result: { sources: PromiseLike<unknown[]> }): Promise<Source[]> {
+export async function extractSources(result: { sources: PromiseLike<unknown[]> | unknown[] }): Promise<Source[]> {
   try {
     const raw = await result.sources
     const urlSources = raw
