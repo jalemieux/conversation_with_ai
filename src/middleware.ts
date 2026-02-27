@@ -3,7 +3,7 @@ import { verifyToken, COOKIE_NAME } from '@/lib/auth'
 
 const PUBLIC_PATHS = ['/login', '/api/auth']
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   // Allow public paths and static assets
@@ -17,7 +17,7 @@ export function middleware(request: NextRequest) {
 
   const token = request.cookies.get(COOKIE_NAME)?.value
 
-  if (!token || !verifyToken(token)) {
+  if (!token || !(await verifyToken(token))) {
     const loginUrl = new URL('/login', request.url)
     return NextResponse.redirect(loginUrl)
   }

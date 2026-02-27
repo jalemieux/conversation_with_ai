@@ -10,26 +10,25 @@ describe('auth', () => {
     it('returns a hex string', async () => {
       vi.stubEnv('CWAI_ACCESS_PASSWORD', 'test-password')
       const { generateToken } = await import('@/lib/auth')
-      const token = generateToken()
+      const token = await generateToken()
       expect(token).toMatch(/^[a-f0-9]{64}$/)
     })
 
     it('produces the same token for the same password', async () => {
       vi.stubEnv('CWAI_ACCESS_PASSWORD', 'test-password')
       const { generateToken } = await import('@/lib/auth')
-      expect(generateToken()).toBe(generateToken())
+      expect(await generateToken()).toBe(await generateToken())
     })
 
     it('produces different tokens for different passwords', async () => {
       vi.stubEnv('CWAI_ACCESS_PASSWORD', 'password-a')
       const authA = await import('@/lib/auth')
-      const tokenA = authA.generateToken()
+      const tokenA = await authA.generateToken()
 
       vi.stubEnv('CWAI_ACCESS_PASSWORD', 'password-b')
-      // Need fresh import to pick up new env
       vi.resetModules()
       const authB = await import('@/lib/auth')
-      const tokenB = authB.generateToken()
+      const tokenB = await authB.generateToken()
 
       expect(tokenA).not.toBe(tokenB)
     })
@@ -59,20 +58,20 @@ describe('auth', () => {
     it('returns true for a valid token', async () => {
       vi.stubEnv('CWAI_ACCESS_PASSWORD', 'test-password')
       const { generateToken, verifyToken } = await import('@/lib/auth')
-      const token = generateToken()
-      expect(verifyToken(token)).toBe(true)
+      const token = await generateToken()
+      expect(await verifyToken(token)).toBe(true)
     })
 
     it('returns false for an invalid token', async () => {
       vi.stubEnv('CWAI_ACCESS_PASSWORD', 'test-password')
       const { verifyToken } = await import('@/lib/auth')
-      expect(verifyToken('bad-token')).toBe(false)
+      expect(await verifyToken('bad-token')).toBe(false)
     })
 
     it('returns false for empty token', async () => {
       vi.stubEnv('CWAI_ACCESS_PASSWORD', 'test-password')
       const { verifyToken } = await import('@/lib/auth')
-      expect(verifyToken('')).toBe(false)
+      expect(await verifyToken('')).toBe(false)
     })
   })
 })

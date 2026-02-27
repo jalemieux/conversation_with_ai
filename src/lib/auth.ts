@@ -1,5 +1,3 @@
-import { createHmac, timingSafeEqual } from 'crypto'
-
 const COOKIE_NAME = 'cwai-auth'
 const COOKIE_MAX_AGE = 30 * 24 * 60 * 60 // 30 days in seconds
 
@@ -7,27 +5,44 @@ function getPassword(): string {
   return process.env.CWAI_ACCESS_PASSWORD || ''
 }
 
-export function generateToken(): string {
-  const password = getPassword()
-  return createHmac('sha256', 'cwai-auth-key').update(password).digest('hex')
+async function hmacSha256(key: string, message: string): Promise<string> {
+  const encoder = new TextEncoder()
+  const cryptoKey = await crypto.subtle.importKey(
+    'raw',
+    encoder.encode(key),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign'],
+  )
+  const signature = await crypto.subtle.sign('HMAC', cryptoKey, encoder.encode(message))
+  return Array.from(new Uint8Array(signature))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('')
+}
+
+function constantTimeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false
+  let result = 0
+  for (let i = 0; i < a.length; i++) {
+    result |= a.charCodeAt(i) ^ b.charCodeAt(i)
+  }
+  return result === 0
+}
+
+export async function generateToken(): Promise<string> {
+  return hmacSha256('cwai-auth-key', getPassword())
 }
 
 export function verifyPassword(input: string): boolean {
   const password = getPassword()
   if (!password) return false
-  const a = Buffer.from(input)
-  const b = Buffer.from(password)
-  if (a.length !== b.length) return false
-  return timingSafeEqual(a, b)
+  return constantTimeEqual(input, password)
 }
 
-export function verifyToken(token: string): boolean {
+export async function verifyToken(token: string): Promise<boolean> {
   if (!token || !getPassword()) return false
-  const expected = generateToken()
-  const a = Buffer.from(token)
-  const b = Buffer.from(expected)
-  if (a.length !== b.length) return false
-  return timingSafeEqual(a, b)
+  const expected = await generateToken()
+  return constantTimeEqual(token, expected)
 }
 
 export { COOKIE_NAME, COOKIE_MAX_AGE }

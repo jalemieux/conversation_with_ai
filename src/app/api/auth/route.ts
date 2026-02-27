@@ -13,7 +13,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Invalid password' }, { status: 401 })
   }
 
-  const token = generateToken()
+  const token = await generateToken()
   const isProduction = process.env.NODE_ENV === 'production'
 
   const response = NextResponse.json({ ok: true })
