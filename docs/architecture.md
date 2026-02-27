@@ -46,6 +46,7 @@
 | Model Config | `src/lib/models.ts` | 4 AI provider configurations |
 | Augmenter | `src/lib/augmenter.ts` | Multi-augmentation: generates all 5 topic framings + prompt rewriting |
 | Orchestrator | `src/lib/orchestrator.ts` | Round 1 + Round 2 prompt builders |
+| System Prompt | `src/lib/system-prompt.ts` | Builds invisible system messages for LLM calls (prose style, depth, word targets) |
 | Types | `src/lib/types.ts` | Shared TypeScript interfaces |
 | Export | `src/lib/export.ts` | Markdown, text, X-thread formatters |
 | TTS Utils | `src/lib/tts.ts` | Voice mapping, markdown stripping, text chunking |
@@ -70,8 +71,8 @@ The `/api/augment` route returns a `MultiAugmenterResult` — all 5 topic type a
 2. POST /api/augment → Claude Haiku generates all 5 augmentations + recommends best fit
 3. User reviews augmented prompt → Review page (clickable topic type tags)
 4. POST /api/conversation → SSE stream begins
-5. Round 1: 4 models stream responses in parallel (token-by-token)
-6. Round 2: 4 models stream reactions in parallel (token-by-token)
+5. Round 1: buildSystemPrompt(1) + user prompt → streamText(system, prompt) → 4 models in parallel
+6. Round 2: buildSystemPrompt(2) + reaction prompt → streamText(system, prompt) → 4 models in parallel
 7. Responses saved to SQLite after each model completes
 8. User exports via clipboard
 9. (Optional) User clicks speaker icon → useTTS hook fetches /api/tts → OpenAI TTS → audio playback
@@ -124,9 +125,26 @@ responses
 └── content         TEXT
 ```
 
+## ADRs
+
+### ADR-001: System messages for behavioural meta-instructions
+
+**Status:** Accepted
+
+**Context:** Behavioural instructions (essay-style prose, think deeply, use current knowledge, word-count targets) were previously embedded directly in the augmented user prompt and the Round 2 orchestrator prompt. This made them visible to users on the review page and tangled formatting concerns with content concerns.
+
+**Decision:** Extract all behavioural meta-instructions into a dedicated `system-prompt.ts` module. The route handler passes `system: buildSystemPrompt(round)` to each `streamText` call. The user prompt carries only topic content; the system message carries only behavioural directives.
+
+**Consequences:**
+- Behavioural instructions are invisible to users — cleaner review page
+- Single source of truth for prose style, depth, and word targets
+- User prompt and system prompt are independently testable and editable
+- Round-specific additions (word counts) are isolated in one place
+
 ## Changelog
 
 - 2026-02-26: Initial implementation — full conversation flow with 4 models, 2 rounds, SSE streaming, export
 - 2026-02-26: Token-level streaming — switched from generateText to streamText, added token SSE events, real-time UI rendering with cursor indicator
 - 2026-02-26: Multi-augmentation — generate all 5 topic type augmentations in one call, clickable tags on review page to switch between framings
 - 2026-02-26: Text-to-Speech — on-demand TTS via OpenAI gpt-4o-mini-tts, unique voice per model, speaker button on all response cards
+- 2026-02-26: System prompt module — extracted behavioural meta-instructions (prose style, deep thinking, current knowledge, word targets) into dedicated system messages, invisible to users
