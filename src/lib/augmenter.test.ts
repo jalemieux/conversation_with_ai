@@ -29,9 +29,20 @@ describe('Prompt Augmenter', () => {
     it('should create a system prompt for topic classification and augmentation', () => {
       const prompt = buildAugmenterPrompt('Future of software')
       expect(prompt).toContain('Future of software')
-      expect(prompt).toContain('topic_type')
+      expect(prompt).toContain('recommended')
       expect(prompt).toContain('framework')
       expect(prompt).toContain('augmented_prompt')
+    })
+
+    it('asks for all 5 topic types in JSON output', () => {
+      const prompt = buildAugmenterPrompt('SaaS stocks are oversold')
+      expect(prompt).toContain('prediction')
+      expect(prompt).toContain('opinion')
+      expect(prompt).toContain('comparison')
+      expect(prompt).toContain('trend_analysis')
+      expect(prompt).toContain('open_question')
+      expect(prompt).toContain('recommended')
+      expect(prompt).toContain('SaaS stocks are oversold')
     })
   })
 
