@@ -46,7 +46,6 @@ export async function POST(request: Request) {
             const result = streamText({
               model: getModelProvider(modelKey),
               prompt,
-              maxOutputTokens: 1500,
             })
 
             let fullText = ''
@@ -82,7 +81,6 @@ export async function POST(request: Request) {
             const result = streamText({
               model: getModelProvider(modelKey),
               prompt,
-              maxOutputTokens: 1500,
             })
 
             let fullText = ''
