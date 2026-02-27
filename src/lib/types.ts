@@ -21,15 +21,3 @@ export interface Conversation {
   models: string[]
   responses: ConversationResponse[]
 }
-
-export interface SSEEvent {
-  event: string
-  data: {
-    round?: number
-    model?: string
-    modelName?: string
-    content?: string
-    conversationId?: string
-    message?: string
-  }
-}
