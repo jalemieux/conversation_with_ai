@@ -30,5 +30,5 @@ Here are the other models' initial responses:
 
 ${otherResponses}
 
-Now react to what the others said. You may agree, disagree, build on ideas, or offer new perspectives. Be direct and substantive — avoid generic praise. Aim for roughly 300-500 words. This is Round 2 of a published conversation.`
+Now react to what the others said. You may agree, disagree, build on ideas, or offer new perspectives.`
 }
