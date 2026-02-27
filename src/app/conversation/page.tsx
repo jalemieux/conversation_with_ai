@@ -14,6 +14,7 @@ interface ModelResponse {
   provider: string
   modelId: string
   content: string
+  sources?: { url: string; title: string }[]
 }
 
 const MODEL_ACCENT: Record<string, string> = {
@@ -163,6 +164,28 @@ function ConversationContent() {
       </summary>
       <div className="px-5 pb-5 border-t border-border pt-4">
         <MarkdownContent content={r.content} />
+        {r.sources && r.sources.length > 0 && (
+          <div className="mt-4 pt-3 border-t border-border">
+            <p className="text-xs font-medium tracking-widest uppercase text-ink-faint mb-2">Sources</p>
+            <ol className="list-decimal list-inside space-y-1">
+              {r.sources.map((s, i) => (
+                <li key={i} className="text-xs text-ink-muted">
+                  <a
+                    href={s.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:text-amber transition-colors"
+                  >
+                    {s.title || new URL(s.url).hostname}
+                  </a>
+                  <span className="text-ink-faint ml-1">
+                    — {new URL(s.url).hostname}
+                  </span>
+                </li>
+              ))}
+            </ol>
+          </div>
+        )}
       </div>
     </details>
   )
