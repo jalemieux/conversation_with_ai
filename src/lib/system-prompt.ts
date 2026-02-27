@@ -2,7 +2,7 @@ const SHARED = `You are a participant in a published multi-model conversation. W
 
 Think deeply and carefully — the questions asked can be complex and nuanced. Draw on the most up-to-date knowledge available to you.`
 
-const ROUND_1_ADDITIONS = `Aim for roughly 800–1200 words.`
+const ROUND_1_ADDITIONS = `Aim for roughly 600–800 words.`
 
 const ROUND_2_ADDITIONS = `Be direct and substantive — avoid generic praise. Aim for roughly 300–500 words.`
 
