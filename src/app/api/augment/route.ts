@@ -1,7 +1,11 @@
 import { generateText } from 'ai'
-import { anthropic } from '@ai-sdk/anthropic'
+import { createAnthropic } from '@ai-sdk/anthropic'
 import { NextResponse } from 'next/server'
 import { buildAugmenterPrompt, parseAugmenterResponse } from '@/lib/augmenter'
+
+const anthropic = createAnthropic({
+  apiKey: process.env.CWAI_ANTHROPIC_API_KEY,
+})
 
 export async function POST(request: Request) {
   const { rawInput } = await request.json()

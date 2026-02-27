@@ -1,7 +1,12 @@
-import { anthropic } from '@ai-sdk/anthropic'
-import { openai } from '@ai-sdk/openai'
-import { google } from '@ai-sdk/google'
-import { xai } from '@ai-sdk/xai'
+import { createAnthropic } from '@ai-sdk/anthropic'
+import { createOpenAI } from '@ai-sdk/openai'
+import { createGoogleGenerativeAI } from '@ai-sdk/google'
+import { createXai } from '@ai-sdk/xai'
+
+const anthropic = createAnthropic({ apiKey: process.env.CWAI_ANTHROPIC_API_KEY })
+const openai = createOpenAI({ apiKey: process.env.CWAI_OPENAI_API_KEY })
+const google = createGoogleGenerativeAI({ apiKey: process.env.CWAI_GOOGLE_API_KEY })
+const xai = createXai({ apiKey: process.env.CWAI_XAI_API_KEY })
 import type { LanguageModel } from 'ai'
 
 export interface ModelConfig {
@@ -16,25 +21,25 @@ export const MODEL_CONFIGS: Record<string, ModelConfig> = {
     id: 'claude',
     name: 'Claude',
     provider: 'anthropic',
-    modelId: 'claude-sonnet-4-6',
+    modelId: 'claude-opus-4-6',
   },
-  gpt4: {
-    id: 'gpt4',
-    name: 'GPT-4',
+  gpt: {
+    id: 'gpt',
+    name: 'GPT',
     provider: 'openai',
-    modelId: 'gpt-4o',
+    modelId: 'gpt-5.2-pro',
   },
   gemini: {
     id: 'gemini',
     name: 'Gemini',
     provider: 'google',
-    modelId: 'gemini-2.5-pro-preview-06-05',
+    modelId: 'gemini-3.1-pro-preview',
   },
   grok: {
     id: 'grok',
     name: 'Grok',
     provider: 'xai',
-    modelId: 'grok-3',
+    modelId: 'grok-4-1-fast-reasoning',
   },
 }
 
