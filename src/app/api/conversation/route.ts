@@ -1,4 +1,4 @@
-import { generateText } from 'ai'
+import { streamText } from 'ai'
 import { NextResponse } from 'next/server'
 import { db } from '@/db'
 import { conversations, responses } from '@/db/schema'
@@ -43,11 +43,17 @@ export async function POST(request: Request) {
             const config = MODEL_CONFIGS[modelKey]
             const prompt = buildRound1Prompt(augmentedPrompt, config.name)
 
-            const { text } = await generateText({
+            const result = streamText({
               model: getModelProvider(modelKey),
               prompt,
               maxOutputTokens: 1500,
             })
+
+            let fullText = ''
+            for await (const chunk of result.textStream) {
+              fullText += chunk
+              send('token', { round: 1, model: modelKey, modelName: config.name, chunk })
+            }
 
             const respId = randomUUID()
             await db.insert(responses).values({
@@ -55,11 +61,11 @@ export async function POST(request: Request) {
               conversationId,
               round: 1,
               model: modelKey,
-              content: text,
+              content: fullText,
             })
 
-            send('response', { round: 1, model: modelKey, modelName: config.name, content: text })
-            return { model: config.name, content: text }
+            send('response', { round: 1, model: modelKey, modelName: config.name, content: fullText })
+            return { model: config.name, content: fullText }
           })
         )
 
@@ -73,11 +79,17 @@ export async function POST(request: Request) {
             const config = MODEL_CONFIGS[modelKey]
             const prompt = buildRound2Prompt(augmentedPrompt, config.name, round1Results)
 
-            const { text } = await generateText({
+            const result = streamText({
               model: getModelProvider(modelKey),
               prompt,
               maxOutputTokens: 1500,
             })
+
+            let fullText = ''
+            for await (const chunk of result.textStream) {
+              fullText += chunk
+              send('token', { round: 2, model: modelKey, modelName: config.name, chunk })
+            }
 
             const respId = randomUUID()
             await db.insert(responses).values({
@@ -85,10 +97,10 @@ export async function POST(request: Request) {
               conversationId,
               round: 2,
               model: modelKey,
-              content: text,
+              content: fullText,
             })
 
-            send('response', { round: 2, model: modelKey, modelName: config.name, content: text })
+            send('response', { round: 2, model: modelKey, modelName: config.name, content: fullText })
           })
         )
 
