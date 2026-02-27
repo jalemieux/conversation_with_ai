@@ -9,7 +9,7 @@ import type { Round1Response } from '@/lib/orchestrator'
 import { randomUUID } from 'crypto'
 
 export async function POST(request: Request) {
-  const { rawInput, augmentedPrompt, topicType, framework, models } = await request.json()
+  const { rawInput, augmentedPrompt, topicType, framework, models, essayMode } = await request.json()
 
   if (!augmentedPrompt || !models || !Array.isArray(models) || models.length === 0) {
     return NextResponse.json({ error: 'augmentedPrompt and models are required' }, { status: 400 })
@@ -46,7 +46,7 @@ export async function POST(request: Request) {
 
             const result = streamText({
               model: getModelProvider(modelKey),
-              system: buildSystemPrompt(1),
+              ...(essayMode !== false && { system: buildSystemPrompt(1) }),
               prompt,
               ...(config.providerOptions && { providerOptions: config.providerOptions }),
             })
@@ -83,7 +83,7 @@ export async function POST(request: Request) {
 
             const result = streamText({
               model: getModelProvider(modelKey),
-              system: buildSystemPrompt(2),
+              ...(essayMode !== false && { system: buildSystemPrompt(2) }),
               prompt,
               ...(config.providerOptions && { providerOptions: config.providerOptions }),
             })
