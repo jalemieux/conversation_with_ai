@@ -1,7 +1,7 @@
 import { generateText } from 'ai'
 import { createAnthropic } from '@ai-sdk/anthropic'
 import { NextResponse } from 'next/server'
-import { buildAugmenterPrompt, parseAugmenterResponse } from '@/lib/augmenter'
+import { buildAugmenterPrompt, parseMultiAugmenterResponse } from '@/lib/augmenter'
 
 const anthropic = createAnthropic({
   apiKey: process.env.CWAI_ANTHROPIC_API_KEY,
@@ -19,15 +19,14 @@ export async function POST(request: Request) {
   const { text } = await generateText({
     model: anthropic('claude-haiku-4-5-20251001'),
     prompt,
-    maxOutputTokens: 500,
+    maxOutputTokens: 2000,
   })
 
-  const result = parseAugmenterResponse(text)
+  const result = parseMultiAugmenterResponse(text)
 
   return NextResponse.json({
     rawInput: rawInput.trim(),
-    topicType: result.topicType,
-    framework: result.framework,
-    augmentedPrompt: result.augmentedPrompt,
+    recommended: result.recommended,
+    augmentations: result.augmentations,
   })
 }
