@@ -47,11 +47,10 @@ describe('getSearchConfig', () => {
     expect(config.tools!.google_search).toBeDefined()
   })
 
-  it('should return providerOptions for grok', () => {
+  it('should return search tools for grok', () => {
     const config = getSearchConfig('grok')
-    expect(config.providerOptions?.xai).toEqual({
-      searchParameters: { mode: 'auto', returnCitations: true },
-    })
+    expect(config.tools).toBeDefined()
+    expect(config.tools!.web_search).toBeDefined()
   })
 
   it('should return empty config for unknown model', () => {

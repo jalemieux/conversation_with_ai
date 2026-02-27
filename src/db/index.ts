@@ -32,9 +32,18 @@ function initDb(): BetterSQLite3Database<typeof schema> {
       conversation_id TEXT NOT NULL REFERENCES conversations(id),
       round INTEGER NOT NULL,
       model TEXT NOT NULL,
-      content TEXT NOT NULL
+      content TEXT NOT NULL,
+      sources TEXT
     );
   `)
+
+  // Migration: add sources column if missing (for existing databases)
+  const hasSourcesColumn = sqlite.prepare(
+    `SELECT COUNT(*) as cnt FROM pragma_table_info('responses') WHERE name = 'sources'`
+  ).get() as { cnt: number }
+  if (hasSourcesColumn.cnt === 0) {
+    sqlite.exec(`ALTER TABLE responses ADD COLUMN sources TEXT`)
+  }
 
   _db = drizzle(sqlite, { schema })
   return _db

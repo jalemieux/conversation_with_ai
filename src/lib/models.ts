@@ -66,7 +66,7 @@ const PROVIDERS: Record<string, (modelId: string) => LanguageModel> = {
   anthropic: (modelId) => anthropic(modelId),
   openai: (modelId) => openai(modelId),
   google: (modelId) => google(modelId),
-  xai: (modelId) => xai(modelId),
+  xai: (modelId) => xai.responses(modelId),
 }
 
 export function getModelProvider(modelKey: string): LanguageModel {
@@ -116,10 +116,8 @@ export function getSearchConfig(modelKey: string): SearchConfig {
       }
     case 'grok':
       return {
-        providerOptions: {
-          xai: {
-            searchParameters: { mode: 'auto', returnCitations: true },
-          },
+        tools: {
+          web_search: xai.tools.webSearch(),
         },
       }
     default:
