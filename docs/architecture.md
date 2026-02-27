@@ -9,7 +9,7 @@
 │  ┌───────────┐  ┌──────────────┐  ┌─────────────┐  │
 │  │ Home      │  │ Review       │  │ Conversation │  │
 │  │ /         │──▶ /review      │──▶ /conversation│  │
-│  │           │  │              │  │ (streaming)  │  │
+│  │           │  │              │  │ (parallel)   │  │
 │  └───────────┘  └──────────────┘  └──────┬──────┘  │
 │                                          │         │
 │                                   ┌──────▼──────┐  │
@@ -21,8 +21,8 @@
 ┌──────────────────────▼──────────────────────────────┐
 │                  API ROUTES                          │
 │                                                      │
-│  POST /api/augment      POST /api/conversation       │
-│  POST /api/tts                                       │
+│  POST /api/augment      POST /api/conversation        │
+│  POST /api/conversation/respond   POST /api/tts      │
 │  GET /api/conversations  GET /api/conversations/[id]  │
 │                                                      │
 │  ┌──────────────────────────────────────────────┐   │
@@ -57,6 +57,7 @@
 | Auth Middleware | `src/middleware.ts` | Auth gate, checks cookie on all routes, redirects to /login if missing/invalid |
 | Login Page | `src/app/login/page.tsx` | Password entry form |
 | Auth API Route | `src/app/api/auth/route.ts` | Password validation endpoint, sets HttpOnly auth cookie |
+| Respond Route | `src/app/api/conversation/respond/route.ts` | Per-model response generation with search/sources support |
 
 ## Augmenter Types
 
@@ -74,10 +75,11 @@ The `/api/augment` route returns a `MultiAugmenterResult` — all 5 topic type a
 1. User types topic → Home page
 2. POST /api/augment → Claude Haiku generates all 5 augmentations + recommends best fit
 3. User reviews augmented prompt → Review page (clickable topic type tags, essay mode toggle)
-4. POST /api/conversation (includes essayMode boolean) → SSE stream begins
-5. Round 1: if essayMode, buildSystemPrompt(1) + user prompt → streamText(system, prompt) → 4 models in parallel
-6. Round 2: if essayMode, buildSystemPrompt(2) + reaction prompt → streamText(system, prompt) → 4 models in parallel
-7. Responses saved to SQLite after each model completes
+4. POST /api/conversation → saves metadata, returns conversationId
+5. Round 1: N parallel POST /api/conversation/respond calls (one per model) → generateText → responses appear as each model finishes
+6. User clicks "Start Round 2" button (optional)
+7. Round 2: N parallel POST /api/conversation/respond calls → each model reacts to Round 1 responses
+8. Responses saved to SQLite after each model completes
 8. User exports via clipboard
 9. (Optional) User clicks speaker icon → useTTS hook fetches /api/tts → OpenAI TTS → audio playback
 ```
@@ -96,18 +98,16 @@ SpeakerButton (click) → useTTS.toggle()
 
 Each AI model has a unique voice: Claude=coral, GPT=nova, Gemini=sage, Grok=ash. Only one response plays at a time (toggle behavior).
 
-## SSE Protocol
+## Conversation API Protocol
 
-| Event | When | Data |
-|-------|------|------|
-| `round_start` | Round begins | `{round}` |
-| `token` | Each text chunk from a model | `{round, model, modelName, chunk}` |
-| `response` | Model completes streaming | `{round, model, modelName, content}` |
-| `round_complete` | All models done for round | `{round}` |
-| `done` | Everything finished | `{conversationId}` |
-| `error` | On failure | `{message}` |
+The conversation flow uses two endpoints instead of a single SSE stream:
 
-The backend uses `streamText()` from Vercel AI SDK to iterate over `textStream`, sending `token` events per chunk. The frontend accumulates chunks per model in a Map and renders partial text with a pulsing cursor indicator.
+| Endpoint | Method | Purpose | Returns |
+|----------|--------|---------|---------|
+| `/api/conversation` | POST | Save conversation metadata | `{ conversationId }` |
+| `/api/conversation/respond` | POST | Generate one model's response for one round | `{ content, model, modelName, provider, modelId, round, sources }` |
+
+The client fires N parallel `/api/conversation/respond` calls per round (one per model). Each call uses `generateText()` from Vercel AI SDK and returns the full response when complete. Round 2 is optional and user-triggered via a "Start Round 2" button.
 
 ## Data Model
 
@@ -168,3 +168,4 @@ responses
 - 2026-02-26: System prompt module — extracted behavioural meta-instructions (prose style, deep thinking, current knowledge, word targets) into dedicated system messages, invisible to users
 - 2026-02-26: Auth gate — shared password protection with HMAC cookie, middleware redirect, login page
 - 2026-02-27: Essay mode toggle — boolean toggle on review page (default: on) controls whether system prompts are applied; flows as query param through conversation page to API route
+- 2026-02-27: Optional Round 2 — replaced SSE stream with parallel per-model fetch calls via new `/api/conversation/respond` endpoint; Round 2 is now user-triggered via button click; preserved search/sources support

@@ -50,8 +50,8 @@ flowchart TD
 
 1. **Augmentation** — A single Haiku call generates 5 analytical framings (prediction, opinion, comparison, trend analysis, open question) and recommends the best fit
 2. **Review** — Clickable tags let the user switch between framings and edit before proceeding
-3. **Round 1** — All selected models stream responses in parallel via SSE, token-by-token
-4. **Round 2** — Each model reads the others' Round 1 responses and reacts — agreements, disagreements, and new perspectives
+3. **Round 1** — All selected models generate responses in parallel, appearing as each completes
+4. **Round 2** *(optional)* — Click "Start Round 2" to have each model read the others' Round 1 responses and react — agreements, disagreements, and new perspectives
 5. **Export** — Copy the full discussion as Markdown, plain text, or an X thread
 6. **Text-to-Speech** — Click the speaker icon on any response to hear it read aloud via OpenAI TTS, with a unique voice per model (Claude=coral, GPT=nova, Gemini=sage, Grok=ash)
 
@@ -59,8 +59,8 @@ flowchart TD
 
 | Decision | Rationale |
 |----------|-----------|
-| **SSE streaming** over WebSockets | Simpler protocol, natural fit for server-to-client token streams, no connection state to manage |
-| **Vercel AI SDK** for all providers | Unified `streamText()` interface across Anthropic, OpenAI, Google, and xAI — swap models by changing one config |
+| **Parallel per-model fetches** over SSE | Each model gets its own request — responses appear independently as they finish, no single-stream bottleneck |
+| **Vercel AI SDK** for all providers | Unified `generateText()` interface across Anthropic, OpenAI, Google, and xAI — swap models by changing one config |
 | **Multi-augmentation in one call** | Single Haiku call generates all 5 framings instead of 5 separate calls — lower latency, lower cost |
 | **SQLite + Drizzle** | Zero-config persistence, no external database dependency, type-safe queries |
 | **Extended thinking** enabled | Claude and Gemini use thinking budgets; GPT uses reasoning effort — models show their best work |
@@ -88,11 +88,11 @@ src/
 │   ├── page.tsx                # Home — topic input + model selector
 │   ├── review/page.tsx         # Augmentation review + framing picker
 │   ├── conversation/
-│   │   ├── page.tsx            # Live streaming discussion
+│   │   ├── page.tsx            # Live parallel discussion
 │   │   └── [id]/page.tsx       # Conversation history detail view
 │   └── api/
 │       ├── augment/            # POST — multi-augmentation
-│       ├── conversation/       # POST — SSE stream (rounds 1 & 2)
+│       ├── conversation/       # POST — save metadata; /respond — per-model generation
 │       ├── tts/                # POST — text-to-speech via OpenAI
 │       └── conversations/      # GET list, GET/DELETE by id
 ├── lib/
