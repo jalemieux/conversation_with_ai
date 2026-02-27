@@ -17,6 +17,7 @@ function ConversationContent() {
   const [done, setDone] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [conversationId, setConversationId] = useState<string | null>(null)
+  const [streamingResponses, setStreamingResponses] = useState<Map<string, ModelResponse>>(new Map())
   const startedRef = useRef(false)
 
   useEffect(() => {
@@ -64,7 +65,26 @@ function ConversationContent() {
                 case 'round_start':
                   setCurrentRound(data.round)
                   break
+                case 'token': {
+                  const key = `${data.round}-${data.model}`
+                  setStreamingResponses((prev) => {
+                    const next = new Map(prev)
+                    const existing = next.get(key)
+                    if (existing) {
+                      next.set(key, { ...existing, content: existing.content + data.chunk })
+                    } else {
+                      next.set(key, { round: data.round, model: data.model, modelName: data.modelName, content: data.chunk })
+                    }
+                    return next
+                  })
+                  break
+                }
                 case 'response':
+                  setStreamingResponses((prev) => {
+                    const next = new Map(prev)
+                    next.delete(`${data.round}-${data.model}`)
+                    return next
+                  })
                   setResponses((prev) => [...prev, data])
                   break
                 case 'done':
@@ -87,6 +107,8 @@ function ConversationContent() {
 
   const round1 = responses.filter((r) => r.round === 1)
   const round2 = responses.filter((r) => r.round === 2)
+  const streaming1 = Array.from(streamingResponses.values()).filter((r) => r.round === 1)
+  const streaming2 = Array.from(streamingResponses.values()).filter((r) => r.round === 2)
 
   return (
     <div>
@@ -98,7 +120,7 @@ function ConversationContent() {
         </div>
       )}
 
-      {round1.length > 0 && (
+      {(round1.length > 0 || streaming1.length > 0) && (
         <div className="mb-8">
           <h2 className="text-lg font-medium text-gray-400 mb-4">Round 1 — Initial Responses</h2>
           <div className="space-y-4">
@@ -108,11 +130,17 @@ function ConversationContent() {
                 <div className="text-gray-300 whitespace-pre-wrap">{r.content}</div>
               </div>
             ))}
+            {streaming1.map((r) => (
+              <div key={`streaming-${r.model}`} className="bg-gray-900 border border-gray-800 rounded-lg p-5">
+                <h3 className="font-medium text-blue-400 mb-2">{r.modelName}</h3>
+                <div className="text-gray-300 whitespace-pre-wrap">{r.content}<span className="animate-pulse">▍</span></div>
+              </div>
+            ))}
           </div>
         </div>
       )}
 
-      {round2.length > 0 && (
+      {(round2.length > 0 || streaming2.length > 0) && (
         <div className="mb-8">
           <h2 className="text-lg font-medium text-gray-400 mb-4">Round 2 — Reactions</h2>
           <div className="space-y-4">
@@ -120,6 +148,12 @@ function ConversationContent() {
               <div key={i} className="bg-gray-900 border border-gray-800 rounded-lg p-5">
                 <h3 className="font-medium text-purple-400 mb-2">{r.modelName}</h3>
                 <div className="text-gray-300 whitespace-pre-wrap">{r.content}</div>
+              </div>
+            ))}
+            {streaming2.map((r) => (
+              <div key={`streaming-${r.model}`} className="bg-gray-900 border border-gray-800 rounded-lg p-5">
+                <h3 className="font-medium text-purple-400 mb-2">{r.modelName}</h3>
+                <div className="text-gray-300 whitespace-pre-wrap">{r.content}<span className="animate-pulse">▍</span></div>
               </div>
             ))}
           </div>
