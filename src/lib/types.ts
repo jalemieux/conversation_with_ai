@@ -1,8 +1,14 @@
+export interface Source {
+  url: string
+  title: string
+}
+
 export interface ConversationResponse {
   id: string
   round: number
   model: string
   content: string
+  sources?: Source[]
 }
 
 export interface Conversation {

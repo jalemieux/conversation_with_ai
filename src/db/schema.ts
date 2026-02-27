@@ -17,4 +17,5 @@ export const responses = sqliteTable('responses', {
   round: integer('round').notNull(), // 1 or 2
   model: text('model').notNull(),
   content: text('content').notNull(),
+  sources: text('sources'), // JSON array of { url, title }, nullable
 })

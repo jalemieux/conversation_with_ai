@@ -7,8 +7,10 @@ const anthropic = createAnthropic({ apiKey: process.env.CWAI_ANTHROPIC_API_KEY }
 const openai = createOpenAI({ apiKey: process.env.CWAI_OPENAI_API_KEY })
 const google = createGoogleGenerativeAI({ apiKey: process.env.CWAI_GOOGLE_API_KEY })
 const xai = createXai({ apiKey: process.env.CWAI_XAI_API_KEY })
-import type { LanguageModel } from 'ai'
+import { tool, type LanguageModel, type ToolSet } from 'ai'
 import type { ProviderOptions } from '@ai-sdk/provider-utils'
+import { z } from 'zod'
+import { braveSearch, type BraveSearchResult } from './brave-search'
 
 export interface ModelConfig {
   id: string
@@ -75,4 +77,48 @@ export function getModelProvider(modelKey: string): LanguageModel {
 
 export function getDefaultModels(): string[] {
   return Object.keys(MODEL_CONFIGS)
+}
+
+export interface SearchConfig {
+  tools?: ToolSet
+  providerOptions?: ProviderOptions
+}
+
+export function getSearchConfig(modelKey: string): SearchConfig {
+  switch (modelKey) {
+    case 'claude':
+      return {
+        tools: {
+          web_search: tool<{ query: string }, BraveSearchResult[]>({
+            description: 'Search the web for current information on a topic',
+            inputSchema: z.object({
+              query: z.string().describe('The search query'),
+            }),
+            execute: async ({ query }) => {
+              return await braveSearch(query)
+            },
+          }),
+        },
+      }
+    case 'gpt':
+      return {
+        tools: {
+          web_search: openai.tools.webSearch({ searchContextSize: 'medium' }),
+        },
+      }
+    case 'gemini':
+      return {
+        tools: {
+          google_search: google.tools.googleSearch({}),
+        },
+      }
+    case 'grok':
+      return {
+        tools: {
+          web_search: xai.tools.webSearch(),
+        },
+      }
+    default:
+      return {}
+  }
 }
