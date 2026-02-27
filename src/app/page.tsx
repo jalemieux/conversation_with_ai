@@ -44,9 +44,8 @@ export default function Home() {
 
       const params = new URLSearchParams({
         rawInput: data.rawInput,
-        augmentedPrompt: data.augmentedPrompt,
-        topicType: data.topicType,
-        framework: data.framework,
+        recommended: data.recommended,
+        augmentations: JSON.stringify(data.augmentations),
         models: selectedModels.join(','),
       })
       window.location.href = `/review?${params.toString()}`
