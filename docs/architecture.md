@@ -55,11 +55,24 @@
 2. POST /api/augment → Claude Haiku classifies + rewrites
 3. User reviews augmented prompt → Review page
 4. POST /api/conversation → SSE stream begins
-5. Round 1: 4 models respond in parallel
-6. Round 2: 4 models react to others in parallel
-7. Responses saved to SQLite
+5. Round 1: 4 models stream responses in parallel (token-by-token)
+6. Round 2: 4 models stream reactions in parallel (token-by-token)
+7. Responses saved to SQLite after each model completes
 8. User exports via clipboard
 ```
+
+## SSE Protocol
+
+| Event | When | Data |
+|-------|------|------|
+| `round_start` | Round begins | `{round}` |
+| `token` | Each text chunk from a model | `{round, model, modelName, chunk}` |
+| `response` | Model completes streaming | `{round, model, modelName, content}` |
+| `round_complete` | All models done for round | `{round}` |
+| `done` | Everything finished | `{conversationId}` |
+| `error` | On failure | `{message}` |
+
+The backend uses `streamText()` from Vercel AI SDK to iterate over `textStream`, sending `token` events per chunk. The frontend accumulates chunks per model in a Map and renders partial text with a pulsing cursor indicator.
 
 ## Data Model
 
@@ -84,3 +97,4 @@ responses
 ## Changelog
 
 - 2026-02-26: Initial implementation — full conversation flow with 4 models, 2 rounds, SSE streaming, export
+- 2026-02-26: Token-level streaming — switched from generateText to streamText, added token SSE events, real-time UI rendering with cursor indicator
