@@ -7,6 +7,7 @@ import MarkdownContent from '@/components/MarkdownContent'
 import { useTTS } from '@/hooks/useTTS'
 import { SpeakerButton } from '@/components/SpeakerButton'
 import { CopyButton } from '@/components/CopyButton'
+import { exportMarkdown, exportText } from '@/lib/export'
 import type { Conversation } from '@/lib/types'
 
 const MODEL_ACCENT: Record<string, string> = {
@@ -179,9 +180,7 @@ export default function ConversationDetailPage() {
       <div className="flex flex-wrap gap-2 mt-8 animate-fade-up stagger-4">
         <button
           onClick={() => {
-            import('@/lib/export').then(({ exportMarkdown }) => {
-              navigator.clipboard.writeText(exportMarkdown(conversation))
-            })
+            navigator.clipboard.writeText(exportMarkdown(conversation))
           }}
           className="px-5 py-2.5 bg-card border border-border hover:border-border-strong rounded-xl font-medium transition-all duration-200 text-sm text-ink-muted hover:text-ink"
         >
@@ -189,9 +188,7 @@ export default function ConversationDetailPage() {
         </button>
         <button
           onClick={() => {
-            import('@/lib/export').then(({ exportText }) => {
-              navigator.clipboard.writeText(exportText(conversation))
-            })
+            navigator.clipboard.writeText(exportText(conversation))
           }}
           className="px-5 py-2.5 bg-card border border-border hover:border-border-strong rounded-xl font-medium transition-all duration-200 text-sm text-ink-muted hover:text-ink"
         >

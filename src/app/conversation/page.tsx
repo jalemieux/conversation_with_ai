@@ -6,6 +6,7 @@ import MarkdownContent from '@/components/MarkdownContent'
 import { useTTS } from '@/hooks/useTTS'
 import { SpeakerButton } from '@/components/SpeakerButton'
 import { CopyButton } from '@/components/CopyButton'
+import { exportMarkdown, exportText, exportXThread } from '@/lib/export'
 
 interface ModelResponse {
   round: number
@@ -292,46 +293,34 @@ function ConversationContent() {
             New Conversation
           </button>
           <button
-            onClick={() => {
+            onClick={async () => {
               if (!conversationId) return
-              fetch(`/api/conversations/${conversationId}`)
-                .then((r) => r.json())
-                .then((data) => {
-                  import('@/lib/export').then(({ exportMarkdown }) => {
-                    navigator.clipboard.writeText(exportMarkdown(data))
-                  })
-                })
+              const r = await fetch(`/api/conversations/${conversationId}`)
+              const data = await r.json()
+              await navigator.clipboard.writeText(exportMarkdown(data))
             }}
             className="px-5 py-2.5 bg-card border border-border hover:border-border-strong hover:shadow-[0_1px_4px_rgba(0,0,0,0.06)] rounded-xl font-medium transition-all duration-200 text-sm text-ink-muted hover:text-ink cursor-pointer"
           >
             Copy Markdown
           </button>
           <button
-            onClick={() => {
+            onClick={async () => {
               if (!conversationId) return
-              fetch(`/api/conversations/${conversationId}`)
-                .then((r) => r.json())
-                .then((data) => {
-                  import('@/lib/export').then(({ exportText }) => {
-                    navigator.clipboard.writeText(exportText(data))
-                  })
-                })
+              const r = await fetch(`/api/conversations/${conversationId}`)
+              const data = await r.json()
+              await navigator.clipboard.writeText(exportText(data))
             }}
             className="px-5 py-2.5 bg-card border border-border hover:border-border-strong hover:shadow-[0_1px_4px_rgba(0,0,0,0.06)] rounded-xl font-medium transition-all duration-200 text-sm text-ink-muted hover:text-ink cursor-pointer"
           >
             Copy Text
           </button>
           <button
-            onClick={() => {
+            onClick={async () => {
               if (!conversationId) return
-              fetch(`/api/conversations/${conversationId}`)
-                .then((r) => r.json())
-                .then((data) => {
-                  import('@/lib/export').then(({ exportXThread }) => {
-                    const tweets = exportXThread(data)
-                    navigator.clipboard.writeText(tweets.join('\n\n---\n\n'))
-                  })
-                })
+              const r = await fetch(`/api/conversations/${conversationId}`)
+              const data = await r.json()
+              const tweets = exportXThread(data)
+              await navigator.clipboard.writeText(tweets.join('\n\n---\n\n'))
             }}
             className="px-5 py-2.5 bg-card border border-border hover:border-border-strong hover:shadow-[0_1px_4px_rgba(0,0,0,0.06)] rounded-xl font-medium transition-all duration-200 text-sm text-ink-muted hover:text-ink cursor-pointer"
           >
