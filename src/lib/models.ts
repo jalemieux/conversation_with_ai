@@ -8,12 +8,14 @@ const openai = createOpenAI({ apiKey: process.env.CWAI_OPENAI_API_KEY })
 const google = createGoogleGenerativeAI({ apiKey: process.env.CWAI_GOOGLE_API_KEY })
 const xai = createXai({ apiKey: process.env.CWAI_XAI_API_KEY })
 import type { LanguageModel } from 'ai'
+import type { ProviderOptions } from '@ai-sdk/provider-utils'
 
 export interface ModelConfig {
   id: string
   name: string
   provider: string
   modelId: string
+  providerOptions?: ProviderOptions
 }
 
 export const MODEL_CONFIGS: Record<string, ModelConfig> = {
@@ -22,18 +24,33 @@ export const MODEL_CONFIGS: Record<string, ModelConfig> = {
     name: 'Claude',
     provider: 'anthropic',
     modelId: 'claude-opus-4-6',
+    providerOptions: {
+      anthropic: {
+        thinking: { type: 'enabled', budgetTokens: 5000 },
+      },
+    },
   },
   gpt: {
     id: 'gpt',
     name: 'GPT',
     provider: 'openai',
     modelId: 'gpt-5.2-pro',
+    providerOptions: {
+      openai: {
+        reasoningEffort: 'medium',
+      },
+    },
   },
   gemini: {
     id: 'gemini',
     name: 'Gemini',
     provider: 'google',
     modelId: 'gemini-3.1-pro-preview',
+    providerOptions: {
+      google: {
+        thinkingConfig: { thinkingBudget: 5000 },
+      },
+    },
   },
   grok: {
     id: 'grok',

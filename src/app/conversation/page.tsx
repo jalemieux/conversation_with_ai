@@ -2,6 +2,7 @@
 
 import { Suspense, useState, useEffect, useRef } from 'react'
 import { useSearchParams } from 'next/navigation'
+import MarkdownContent from '@/components/MarkdownContent'
 
 interface ModelResponse {
   round: number
@@ -12,6 +13,20 @@ interface ModelResponse {
   content: string
 }
 
+const MODEL_ACCENT: Record<string, string> = {
+  claude: 'text-claude',
+  gpt: 'text-gpt',
+  gemini: 'text-gemini',
+  grok: 'text-grok',
+}
+
+const MODEL_DOT: Record<string, string> = {
+  claude: 'bg-claude',
+  gpt: 'bg-gpt',
+  gemini: 'bg-gemini',
+  grok: 'bg-grok',
+}
+
 function ConversationContent() {
   const searchParams = useSearchParams()
   const [responses, setResponses] = useState<ModelResponse[]>([])
@@ -19,7 +34,7 @@ function ConversationContent() {
   const [done, setDone] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [conversationId, setConversationId] = useState<string | null>(null)
-  const [streamingResponses, setStreamingResponses] = useState<Map<string, ModelResponse>>(new Map())
+  const [streamingModels, setStreamingModels] = useState<Map<string, { round: number; model: string; modelName: string; provider: string; modelId: string }>>(new Map())
   const [topic, setTopic] = useState('')
   const startedRef = useRef(false)
 
@@ -72,20 +87,16 @@ function ConversationContent() {
                   break
                 case 'token': {
                   const key = `${data.round}-${data.model}`
-                  setStreamingResponses((prev) => {
+                  setStreamingModels((prev) => {
+                    if (prev.has(key)) return prev
                     const next = new Map(prev)
-                    const existing = next.get(key)
-                    if (existing) {
-                      next.set(key, { ...existing, content: existing.content + data.chunk })
-                    } else {
-                      next.set(key, { round: data.round, model: data.model, modelName: data.modelName, provider: data.provider, modelId: data.modelId, content: data.chunk })
-                    }
+                    next.set(key, { round: data.round, model: data.model, modelName: data.modelName, provider: data.provider, modelId: data.modelId })
                     return next
                   })
                   break
                 }
                 case 'response':
-                  setStreamingResponses((prev) => {
+                  setStreamingModels((prev) => {
                     const next = new Map(prev)
                     next.delete(`${data.round}-${data.model}`)
                     return next
@@ -112,92 +123,115 @@ function ConversationContent() {
 
   const round1 = responses.filter((r) => r.round === 1)
   const round2 = responses.filter((r) => r.round === 2)
-  const streaming1 = Array.from(streamingResponses.values()).filter((r) => r.round === 1)
-  const streaming2 = Array.from(streamingResponses.values()).filter((r) => r.round === 2)
+  const streaming1 = Array.from(streamingModels.values()).filter((r) => r.round === 1)
+  const streaming2 = Array.from(streamingModels.values()).filter((r) => r.round === 2)
+
+  const getAccent = (model: string, round: number) => {
+    if (round === 2) return 'text-round2'
+    return MODEL_ACCENT[model] ?? 'text-amber'
+  }
+
+  const getDot = (model: string, round: number) => {
+    if (round === 2) return 'bg-round2'
+    return MODEL_DOT[model] ?? 'bg-amber'
+  }
+
+  const ResponseCard = ({ r }: { r: ModelResponse }) => (
+    <details open className="bg-card border border-border rounded-xl overflow-hidden animate-fade-up">
+      <summary className="px-5 py-4 cursor-pointer select-none hover:bg-card-hover transition-colors flex items-center gap-3">
+        <span className={`w-2 h-2 rounded-full flex-shrink-0 ${getDot(r.model, r.round)}`} />
+        <span className={`font-medium ${getAccent(r.model, r.round)}`}>{r.modelName}</span>
+        <span className="text-xs text-ink-faint">{r.provider} / {r.modelId}</span>
+      </summary>
+      <div className="px-5 pb-5 border-t border-border pt-4">
+        <MarkdownContent content={r.content} />
+      </div>
+    </details>
+  )
+
+  const StreamingCard = ({ r }: { r: { model: string; modelName: string; provider: string; modelId: string; round: number } }) => (
+    <div className="bg-card border border-border rounded-xl overflow-hidden animate-fade-up px-5 py-4 flex items-center gap-3">
+      <span className={`w-2 h-2 rounded-full flex-shrink-0 ${getDot(r.model, r.round)}`} />
+      <span className={`font-medium ${getAccent(r.model, r.round)}`}>{r.modelName}</span>
+      <span className="text-xs text-ink-faint">{r.provider} / {r.modelId}</span>
+      <span className="ml-auto w-4 h-4 border-2 border-ink-faint/30 border-t-amber rounded-full animate-spin" />
+    </div>
+  )
 
   return (
     <div>
-      <a href="/" className="text-blue-600 hover:underline text-sm mb-4 block">&larr; New Conversation</a>
+      <a href="/" className="text-ink-faint hover:text-amber text-sm mb-6 inline-flex items-center gap-1.5 transition-colors">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="opacity-60"><path d="M10 12L6 8L10 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+        New Conversation
+      </a>
+
       {topic && (
-        <div className="mb-8 border-l-4 border-blue-400 bg-blue-50 rounded-r-lg px-5 py-4">
-          <p className="text-xs font-medium text-blue-500 uppercase tracking-wide mb-1">Topic</p>
-          <p className="text-gray-700 leading-relaxed">{topic}</p>
+        <div className="mb-10 animate-fade-up">
+          <p className="text-xs font-medium tracking-widest uppercase text-ink-faint mb-2">Topic</p>
+          <div className="border-l-2 border-amber pl-5 py-1">
+            <p className="text-ink leading-relaxed">{topic}</p>
+          </div>
         </div>
       )}
 
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6 text-red-700">
+        <div className="bg-danger/5 border border-danger/20 rounded-xl p-4 mb-6 text-danger animate-fade-up">
           {error}
         </div>
       )}
 
       {(round1.length > 0 || streaming1.length > 0) && (
-        <div className="mb-8">
-          <h2 className="text-lg font-medium text-gray-500 mb-4">Round 1 — Initial Responses</h2>
-          <div className="space-y-4">
+        <div className="mb-10">
+          <div className="flex items-center gap-3 mb-5 animate-fade-up">
+            <p className="text-xs font-medium tracking-widest uppercase text-ink-faint">Round 1 — Initial Responses</p>
+            <div className="flex-1 h-px bg-border" />
+          </div>
+          <div className="space-y-3">
             {round1.map((r, i) => (
-              <details key={i} open className="bg-white border border-gray-200 rounded-lg">
-                <summary className="px-5 py-3 cursor-pointer select-none hover:bg-gray-50 rounded-lg flex items-baseline gap-2">
-                  <span className="font-medium text-blue-600">{r.modelName}</span>
-                  <span className="text-xs text-gray-400">{r.provider} / {r.modelId}</span>
-                </summary>
-                <div className="text-gray-700 whitespace-pre-wrap px-5 pb-5">{r.content}</div>
-              </details>
+              <ResponseCard key={i} r={r} />
             ))}
             {streaming1.map((r) => (
-              <details key={`streaming-${r.model}`} open className="bg-white border border-gray-200 rounded-lg">
-                <summary className="px-5 py-3 cursor-pointer select-none hover:bg-gray-50 rounded-lg flex items-baseline gap-2">
-                  <span className="font-medium text-blue-600">{r.modelName}</span>
-                  <span className="text-xs text-gray-400">{r.provider} / {r.modelId}</span>
-                </summary>
-                <div className="text-gray-700 whitespace-pre-wrap px-5 pb-5">{r.content}<span className="animate-pulse">▍</span></div>
-              </details>
+              <StreamingCard key={`streaming-${r.model}`} r={r} />
             ))}
           </div>
         </div>
       )}
 
       {(round2.length > 0 || streaming2.length > 0) && (
-        <div className="mb-8">
-          <h2 className="text-lg font-medium text-gray-500 mb-4">Round 2 — Reactions</h2>
-          <div className="space-y-4">
+        <div className="mb-10">
+          <div className="flex items-center gap-3 mb-5 animate-fade-up">
+            <p className="text-xs font-medium tracking-widest uppercase text-ink-faint">Round 2 — Reactions</p>
+            <div className="flex-1 h-px bg-border" />
+          </div>
+          <div className="space-y-3">
             {round2.map((r, i) => (
-              <details key={i} open className="bg-white border border-gray-200 rounded-lg">
-                <summary className="px-5 py-3 cursor-pointer select-none hover:bg-gray-50 rounded-lg flex items-baseline gap-2">
-                  <span className="font-medium text-purple-600">{r.modelName}</span>
-                  <span className="text-xs text-gray-400">{r.provider} / {r.modelId}</span>
-                </summary>
-                <div className="text-gray-700 whitespace-pre-wrap px-5 pb-5">{r.content}</div>
-              </details>
+              <ResponseCard key={i} r={r} />
             ))}
             {streaming2.map((r) => (
-              <details key={`streaming-${r.model}`} open className="bg-white border border-gray-200 rounded-lg">
-                <summary className="px-5 py-3 cursor-pointer select-none hover:bg-gray-50 rounded-lg flex items-baseline gap-2">
-                  <span className="font-medium text-purple-600">{r.modelName}</span>
-                  <span className="text-xs text-gray-400">{r.provider} / {r.modelId}</span>
-                </summary>
-                <div className="text-gray-700 whitespace-pre-wrap px-5 pb-5">{r.content}<span className="animate-pulse">▍</span></div>
-              </details>
+              <StreamingCard key={`streaming-${r.model}`} r={r} />
             ))}
           </div>
         </div>
       )}
 
       {!done && !error && (
-        <div className="text-center py-8 text-gray-500">
-          {currentRound > 0
-            ? `Round ${currentRound} in progress... (${
-                currentRound === 1 ? round1.length : round2.length
-              } responses received)`
-            : 'Starting conversation...'}
+        <div className="text-center py-10 animate-fade-in">
+          <div className="inline-flex items-center gap-3 text-ink-muted">
+            <span className="w-5 h-5 border-2 border-ink-faint/30 border-t-amber rounded-full animate-spin" />
+            {currentRound > 0
+              ? `Round ${currentRound} in progress... (${
+                  currentRound === 1 ? round1.length : round2.length
+                } responses received)`
+              : 'Starting conversation...'}
+          </div>
         </div>
       )}
 
       {done && (
-        <div className="mt-6 flex gap-3">
+        <div className="mt-8 animate-fade-up flex flex-wrap gap-2">
           <button
             onClick={() => { window.location.href = '/' }}
-            className="px-6 py-3 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors"
+            className="px-5 py-2.5 bg-ink text-cream hover:bg-ink-light rounded-xl font-medium transition-all duration-200 text-sm"
           >
             New Conversation
           </button>
@@ -212,7 +246,7 @@ function ConversationContent() {
                   })
                 })
             }}
-            className="px-6 py-3 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors"
+            className="px-5 py-2.5 bg-card border border-border hover:border-border-strong rounded-xl font-medium transition-all duration-200 text-sm text-ink-muted hover:text-ink"
           >
             Copy Markdown
           </button>
@@ -227,7 +261,7 @@ function ConversationContent() {
                   })
                 })
             }}
-            className="px-6 py-3 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors"
+            className="px-5 py-2.5 bg-card border border-border hover:border-border-strong rounded-xl font-medium transition-all duration-200 text-sm text-ink-muted hover:text-ink"
           >
             Copy Text
           </button>
@@ -243,7 +277,7 @@ function ConversationContent() {
                   })
                 })
             }}
-            className="px-6 py-3 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors"
+            className="px-5 py-2.5 bg-card border border-border hover:border-border-strong rounded-xl font-medium transition-all duration-200 text-sm text-ink-muted hover:text-ink"
           >
             Copy X Thread
           </button>
@@ -255,7 +289,7 @@ function ConversationContent() {
 
 export default function ConversationPage() {
   return (
-    <Suspense fallback={<div className="text-gray-400">Loading...</div>}>
+    <Suspense fallback={<div className="text-ink-faint">Loading...</div>}>
       <ConversationContent />
     </Suspense>
   )

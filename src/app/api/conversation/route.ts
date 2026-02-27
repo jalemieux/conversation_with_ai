@@ -46,6 +46,7 @@ export async function POST(request: Request) {
             const result = streamText({
               model: getModelProvider(modelKey),
               prompt,
+              ...(config.providerOptions && { providerOptions: config.providerOptions }),
             })
 
             let fullText = ''
@@ -81,6 +82,7 @@ export async function POST(request: Request) {
             const result = streamText({
               model: getModelProvider(modelKey),
               prompt,
+              ...(config.providerOptions && { providerOptions: config.providerOptions }),
             })
 
             let fullText = ''
