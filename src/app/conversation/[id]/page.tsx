@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
 import { MODEL_CONFIGS } from '@/lib/models'
 import MarkdownContent from '@/components/MarkdownContent'
+import { useTTS } from '@/hooks/useTTS'
+import { SpeakerButton } from '@/components/SpeakerButton'
 import type { Conversation } from '@/lib/types'
 
 const MODEL_ACCENT: Record<string, string> = {
@@ -24,6 +26,7 @@ export default function ConversationDetailPage() {
   const params = useParams()
   const [conversation, setConversation] = useState<Conversation | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const tts = useTTS()
 
   useEffect(() => {
     fetch(`/api/conversations/${params.id}`)
@@ -51,6 +54,13 @@ export default function ConversationDetailPage() {
   const round2 = conversation.responses.filter((r) => r.round === 2)
 
   const getModelConfig = (key: string) => MODEL_CONFIGS[key] ?? { name: key, provider: key, modelId: key }
+
+  const getSpeakerState = (key: string): 'idle' | 'loading' | 'playing' | 'error' => {
+    if (tts.playingKey === key) return 'playing'
+    if (tts.loadingKey === key) return 'loading'
+    if (tts.errorKey === key) return 'error'
+    return 'idle'
+  }
 
   return (
     <div>
@@ -92,6 +102,10 @@ export default function ConversationDetailPage() {
                     <span className={`w-2 h-2 rounded-full flex-shrink-0 ${dot}`} />
                     <span className={`font-medium ${accent}`}>{config.name}</span>
                     <span className="text-xs text-ink-faint">{config.provider} / {config.modelId}</span>
+                    <SpeakerButton
+                      state={getSpeakerState(`${r.round}-${r.model}`)}
+                      onClick={() => tts.toggle(`${r.round}-${r.model}`, r.content, r.model)}
+                    />
                   </summary>
                   <div className="px-5 pb-5 border-t border-border pt-4">
                     <MarkdownContent content={r.content} />
@@ -118,6 +132,10 @@ export default function ConversationDetailPage() {
                     <span className="w-2 h-2 rounded-full flex-shrink-0 bg-round2" />
                     <span className="font-medium text-round2">{config.name}</span>
                     <span className="text-xs text-ink-faint">{config.provider} / {config.modelId}</span>
+                    <SpeakerButton
+                      state={getSpeakerState(`${r.round}-${r.model}`)}
+                      onClick={() => tts.toggle(`${r.round}-${r.model}`, r.content, r.model)}
+                    />
                   </summary>
                   <div className="px-5 pb-5 border-t border-border pt-4">
                     <MarkdownContent content={r.content} />
