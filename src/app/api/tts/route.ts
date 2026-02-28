@@ -1,17 +1,42 @@
 import OpenAI from 'openai'
+import { readFile, writeFile, mkdir } from 'fs/promises'
+import path from 'path'
 import { MODEL_VOICES, stripMarkdown } from '@/lib/tts'
 
 const openai = new OpenAI({ apiKey: process.env.CWAI_OPENAI_API_KEY })
 
+function getCachePath(conversationId: string, round: number, model: string): string {
+  return path.join(process.cwd(), 'data', 'audio', conversationId, `${round}-${model}.mp3`)
+}
+
 export async function POST(request: Request) {
   const body = await request.json()
-  const { text, model } = body
+  const { text, model, conversationId, round } = body
 
   if (!text || !model) {
     return new Response(JSON.stringify({ error: 'text and model are required' }), {
       status: 400,
       headers: { 'Content-Type': 'application/json' },
     })
+  }
+
+  const cachingEnabled = conversationId && round !== undefined && round !== null
+
+  // Check cache on hit
+  if (cachingEnabled) {
+    const cachePath = getCachePath(conversationId, round, model)
+    try {
+      const cached = await readFile(cachePath)
+      return new Response(cached, {
+        status: 200,
+        headers: {
+          'Content-Type': 'audio/mpeg',
+          'Content-Length': cached.byteLength.toString(),
+        },
+      })
+    } catch {
+      // Cache miss — fall through to generate
+    }
   }
 
   const voice = MODEL_VOICES[model] ?? 'alloy'
@@ -27,6 +52,15 @@ export async function POST(request: Request) {
     })
 
     const buffer = await response.arrayBuffer()
+
+    // Fire-and-forget: save to cache
+    if (cachingEnabled) {
+      const cachePath = getCachePath(conversationId, round, model)
+      const dir = path.dirname(cachePath)
+      mkdir(dir, { recursive: true })
+        .then(() => writeFile(cachePath, Buffer.from(buffer)))
+        .catch(() => {})
+    }
 
     return new Response(buffer, {
       status: 200,
