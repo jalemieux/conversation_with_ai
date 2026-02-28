@@ -53,7 +53,8 @@ flowchart TD
 3. **Round 1** — All selected models generate responses in parallel, appearing as each completes
 4. **Round 2** *(optional)* — Click "Start Round 2" to have each model read the others' Round 1 responses and react — agreements, disagreements, and new perspectives
 5. **Export** — Copy the full discussion as Markdown, plain text, or an X thread
-6. **Text-to-Speech** — Click the speaker icon on any response to hear it read aloud via OpenAI TTS, with a unique voice per model (Claude=coral, GPT=nova, Gemini=sage, Grok=ash)
+6. **Text-to-Speech** — Click the speaker icon on any response to hear it read aloud via OpenAI TTS, with a unique voice per model (Claude=coral, GPT=nova, Gemini=sage, Grok=ash). Audio is cached on disk so replaying never re-generates
+7. **Inline Audio Player** — When audio loads, an inline mini-player appears inside the response card with play/pause, rewind/forward 10s, a seekable progress bar, and time display
 
 ## Key Technical Decisions
 
@@ -109,7 +110,8 @@ src/
 │   └── index.ts                # SQLite connection singleton
 └── components/
     ├── MarkdownContent.tsx     # Rendered markdown with GFM support
-    └── SpeakerButton.tsx       # TTS speaker icon with state indicators
+    ├── SpeakerButton.tsx       # TTS speaker icon with state indicators + cached dot
+    └── AudioPlayer.tsx         # Inline mini-player (seek, skip, progress bar)
 ```
 
 ## Running Locally
@@ -130,5 +132,5 @@ CWAI_XAI_API_KEY=...
 ```bash
 npm run dev        # http://localhost:3000
 npm test           # watch mode
-npm run test:run   # single run (10 suites, 61 tests)
+npm run test:run   # single run (17 suites, 126 tests)
 ```

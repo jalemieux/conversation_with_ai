@@ -51,8 +51,9 @@
 | Export | `src/lib/export.ts` | Markdown, text, X-thread formatters |
 | TTS Utils | `src/lib/tts.ts` | Voice mapping, markdown stripping, text chunking |
 | TTS API Route | `src/app/api/tts/route.ts` | Proxy to OpenAI gpt-4o-mini-tts |
-| useTTS Hook | `src/hooks/useTTS.ts` | Audio playback state management (toggle/stop) |
-| SpeakerButton | `src/components/SpeakerButton.tsx` | Speaker icon with idle/loading/playing/error states |
+| useTTS Hook | `src/hooks/useTTS.ts` | Audio playback state management (toggle/stop/pause/seek/skip) with progress tracking |
+| SpeakerButton | `src/components/SpeakerButton.tsx` | Speaker icon with idle/loading/playing/error states; green dot when audio is cached |
+| AudioPlayer | `src/components/AudioPlayer.tsx` | Inline mini-player with play/pause, -10s/+10s skip, seekable progress bar, time display |
 | Auth Utils | `src/lib/auth.ts` | HMAC token generation, password verification, timing-safe comparison |
 | Auth Middleware | `src/middleware.ts` | Auth gate, checks cookie on all routes, redirects to /login if missing/invalid |
 | Login Page | `src/app/login/page.tsx` | Password entry form |
@@ -88,15 +89,22 @@ The `/api/augment` route returns a `MultiAugmenterResult` — all 5 topic type a
 
 ```
 SpeakerButton (click) → useTTS.toggle()
-  → POST /api/tts { text, model }
-    → stripMarkdown(text)
-    → MODEL_VOICES[model] → voice
-    → OpenAI gpt-4o-mini-tts (voice, input)
-    → audio/mpeg response
+  → POST /api/tts { text, model, conversationId, round }
+    → sanitize conversationId (strip path traversal)
+    → check cache: data/audio/{conversationId}/{round}-{model}.mp3
+    → IF cached → serve file from disk
+    → ELSE:
+      → stripMarkdown(text)
+      → MODEL_VOICES[model] → voice
+      → OpenAI gpt-4o-mini-tts (voice, input)
+      → save to data/audio/{conversationId}/{round}-{model}.mp3
+      → audio/mpeg response
   → HTMLAudioElement.play()
+  → AudioPlayer renders inline mini-player in response card
+    → play/pause, skip -10s/+10s, seekable progress bar, m:ss time display
 ```
 
-Each AI model has a unique voice: Claude=coral, GPT=nova, Gemini=sage, Grok=ash. Only one response plays at a time (toggle behavior).
+Each AI model has a unique voice: Claude=coral, GPT=nova, Gemini=sage, Grok=ash. Only one response plays at a time (toggle behavior). Generated audio is cached on disk so replaying the same response does not re-call OpenAI. The SpeakerButton shows a green dot indicator when cached audio exists on the server.
 
 ## Conversation API Protocol
 
@@ -169,3 +177,4 @@ responses
 - 2026-02-26: Auth gate — shared password protection with HMAC cookie, middleware redirect, login page
 - 2026-02-27: Essay mode toggle — boolean toggle on review page (default: on) controls whether system prompts are applied; flows as query param through conversation page to API route
 - 2026-02-27: Optional Round 2 — replaced SSE stream with parallel per-model fetch calls via new `/api/conversation/respond` endpoint; Round 2 is now user-triggered via button click; preserved search/sources support
+- 2026-02-28: TTS audio caching + inline player — generated audio cached to `data/audio/{conversationId}/{round}-{model}.mp3` (cache-first, no re-generation on replay); new AudioPlayer component with play/pause, skip -10s/+10s, seekable progress bar, time display; SpeakerButton shows green dot when cached; useTTS hook extended with pauseToggle, skipForward, skipBack, seek, and progress tracking
