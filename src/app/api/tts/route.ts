@@ -6,7 +6,9 @@ import { MODEL_VOICES, stripMarkdown } from '@/lib/tts'
 const openai = new OpenAI({ apiKey: process.env.CWAI_OPENAI_API_KEY })
 
 function getCachePath(conversationId: string, round: number, model: string): string {
-  return path.join(process.cwd(), 'data', 'audio', conversationId, `${round}-${model}.mp3`)
+  const safeId = conversationId.replace(/[^a-zA-Z0-9_-]/g, '')
+  const safeModel = model.replace(/[^a-zA-Z0-9_-]/g, '')
+  return path.join(process.cwd(), 'data', 'audio', safeId, `${round}-${safeModel}.mp3`)
 }
 
 export async function POST(request: Request) {
