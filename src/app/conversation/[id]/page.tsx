@@ -6,6 +6,7 @@ import { MODEL_CONFIGS } from '@/lib/models'
 import MarkdownContent from '@/components/MarkdownContent'
 import { useTTS } from '@/hooks/useTTS'
 import { SpeakerButton } from '@/components/SpeakerButton'
+import { AudioPlayer } from '@/components/AudioPlayer'
 import { CopyButton } from '@/components/CopyButton'
 import { exportMarkdown, exportText } from '@/lib/export'
 import type { Conversation } from '@/lib/types'
@@ -64,6 +65,9 @@ export default function ConversationDetailPage() {
     return 'idle'
   }
 
+  const hasPlayer = (key: string) =>
+    tts.playingKey === key || tts.pausedKey === key
+
   return (
     <div>
       <a href="/" className="text-ink-faint hover:text-amber text-sm mb-6 inline-flex items-center gap-1.5 transition-colors">
@@ -108,10 +112,23 @@ export default function ConversationDetailPage() {
                       <CopyButton content={r.content} />
                       <SpeakerButton
                         state={getSpeakerState(`${r.round}-${r.model}`)}
-                        onClick={() => tts.toggle(`${r.round}-${r.model}`, r.content, r.model)}
+                        onClick={() => tts.toggle(`${r.round}-${r.model}`, r.content, r.model, conversation.id, r.round)}
                       />
                     </span>
                   </summary>
+                  {hasPlayer(`${r.round}-${r.model}`) && (
+                    <div className="px-5 pt-3">
+                      <AudioPlayer
+                        isPlaying={tts.playingKey === `${r.round}-${r.model}`}
+                        currentTime={tts.currentTime}
+                        duration={tts.duration}
+                        onPauseToggle={tts.pauseToggle}
+                        onSkipBack={tts.skipBack}
+                        onSkipForward={tts.skipForward}
+                        onSeek={tts.seek}
+                      />
+                    </div>
+                  )}
                   <div className="px-5 pb-5 border-t border-border pt-4">
                     <MarkdownContent content={r.content} />
                     {r.sources && r.sources.length > 0 && (
@@ -163,10 +180,23 @@ export default function ConversationDetailPage() {
                       <CopyButton content={r.content} />
                       <SpeakerButton
                         state={getSpeakerState(`${r.round}-${r.model}`)}
-                        onClick={() => tts.toggle(`${r.round}-${r.model}`, r.content, r.model)}
+                        onClick={() => tts.toggle(`${r.round}-${r.model}`, r.content, r.model, conversation.id, r.round)}
                       />
                     </span>
                   </summary>
+                  {hasPlayer(`${r.round}-${r.model}`) && (
+                    <div className="px-5 pt-3">
+                      <AudioPlayer
+                        isPlaying={tts.playingKey === `${r.round}-${r.model}`}
+                        currentTime={tts.currentTime}
+                        duration={tts.duration}
+                        onPauseToggle={tts.pauseToggle}
+                        onSkipBack={tts.skipBack}
+                        onSkipForward={tts.skipForward}
+                        onSeek={tts.seek}
+                      />
+                    </div>
+                  )}
                   <div className="px-5 pb-5 border-t border-border pt-4">
                     <MarkdownContent content={r.content} />
                   </div>
