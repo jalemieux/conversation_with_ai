@@ -133,15 +133,25 @@ export function useTTS() {
         setState(prev => ({ ...prev, playingKey: null, pausedKey: prev.playingKey, currentTime: prev.duration }))
       }
 
-      audio.onerror = () => {
+      audio.onerror = (e) => {
+        console.error('[useTTS] audio element error:', e, audio.error)
         stopProgressTracking()
         setState(prev => ({ ...prev, playingKey: null, loadingKey: null, errorKey: key }))
       }
 
-      await audio.play()
+      try {
+        await audio.play()
+      } catch (playErr) {
+        // Autoplay blocked (e.g. browser suspension) — audio is loaded, just not playing.
+        // Set as paused so user can tap again to play without re-fetching.
+        console.warn('[useTTS] play() blocked, audio loaded but paused:', playErr)
+        setState(prev => ({ ...prev, playingKey: null, loadingKey: null, pausedKey: key }))
+        return
+      }
       startProgressTracking()
       setState(prev => ({ ...prev, playingKey: key, loadingKey: null, errorKey: null }))
-    } catch {
+    } catch (err) {
+      console.error('[useTTS] fetch error:', err)
       stopProgressTracking()
       setState(prev => ({ ...prev, playingKey: null, loadingKey: null, errorKey: key }))
     }
