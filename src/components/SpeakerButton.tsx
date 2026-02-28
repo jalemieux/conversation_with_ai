@@ -5,9 +5,10 @@ export type SpeakerState = 'idle' | 'loading' | 'playing' | 'error'
 interface SpeakerButtonProps {
   state: SpeakerState
   onClick: () => void
+  cached?: boolean
 }
 
-export function SpeakerButton({ state, onClick }: SpeakerButtonProps) {
+export function SpeakerButton({ state, onClick, cached }: SpeakerButtonProps) {
   const isLoading = state === 'loading'
 
   const label =
@@ -24,7 +25,7 @@ export function SpeakerButton({ state, onClick }: SpeakerButtonProps) {
       }}
       disabled={isLoading}
       aria-label={label}
-      className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+      className={`relative p-1.5 rounded-lg transition-colors cursor-pointer ${
         state === 'playing'
           ? 'text-amber hover:text-amber/80'
           : state === 'error'
@@ -46,6 +47,12 @@ export function SpeakerButton({ state, onClick }: SpeakerButtonProps) {
           <line x1="23" y1="9" x2="17" y2="15" opacity="0.3" />
           <line x1="17" y1="9" x2="23" y2="15" opacity="0.3" />
         </svg>
+      )}
+      {cached && state === 'idle' && (
+        <span
+          data-testid="cached-indicator"
+          className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-emerald-400 rounded-full"
+        />
       )}
     </button>
   )

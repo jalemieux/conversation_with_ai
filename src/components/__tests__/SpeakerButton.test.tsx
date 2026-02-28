@@ -45,4 +45,20 @@ describe('SpeakerButton', () => {
     await userEvent.click(screen.getByRole('button', { name: /loading/i }))
     expect(onClick).not.toHaveBeenCalled()
   })
+
+  it('should show cached indicator when cached prop is true', () => {
+    render(<SpeakerButton state="idle" onClick={() => {}} cached={true} />)
+    const indicator = screen.getByTestId('cached-indicator')
+    expect(indicator).toBeInTheDocument()
+  })
+
+  it('should not show cached indicator by default', () => {
+    render(<SpeakerButton state="idle" onClick={() => {}} />)
+    expect(screen.queryByTestId('cached-indicator')).not.toBeInTheDocument()
+  })
+
+  it('should not show cached indicator when playing', () => {
+    render(<SpeakerButton state="playing" onClick={() => {}} cached={true} />)
+    expect(screen.queryByTestId('cached-indicator')).not.toBeInTheDocument()
+  })
 })
