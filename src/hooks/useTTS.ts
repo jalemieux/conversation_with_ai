@@ -130,7 +130,7 @@ export function useTTS() {
 
       audio.onended = () => {
         stopProgressTracking()
-        setState(prev => ({ ...prev, playingKey: null, pausedKey: key }))
+        setState(prev => ({ ...prev, playingKey: null, pausedKey: prev.playingKey, currentTime: prev.duration }))
       }
 
       audio.onerror = () => {
