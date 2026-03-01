@@ -3,12 +3,19 @@ export interface Source {
   title: string
 }
 
+export interface Usage {
+  inputTokens: number
+  outputTokens: number
+  cost: number
+}
+
 export interface ConversationResponse {
   id: string
   round: number
   model: string
   content: string
   sources?: Source[]
+  usage?: Usage
 }
 
 export interface Conversation {
