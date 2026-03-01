@@ -1,5 +1,25 @@
-import { describe, it, expect } from 'vitest'
-import { MODEL_VOICES, stripMarkdown, chunkText, REWRITE_SYSTEM_PROMPT } from './tts'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import {
+  MODEL_VOICES,
+  stripMarkdown,
+  chunkText,
+  REWRITE_SYSTEM_PROMPT,
+  rewriteForAudio,
+} from './tts'
+
+vi.mock('ai', () => ({
+  generateText: vi.fn(),
+}))
+
+vi.mock('@/lib/models', () => ({
+  getModelProvider: vi.fn(),
+}))
+
+import { generateText } from 'ai'
+import { getModelProvider } from '@/lib/models'
+
+const mockGenerateText = vi.mocked(generateText)
+const mockGetModelProvider = vi.mocked(getModelProvider)
 
 describe('REWRITE_SYSTEM_PROMPT', () => {
   it('should be a non-empty string', () => {
@@ -13,6 +33,50 @@ describe('REWRITE_SYSTEM_PROMPT', () => {
 
   it('should instruct to output plain text only', () => {
     expect(REWRITE_SYSTEM_PROMPT).toMatch(/no markdown/i)
+  })
+})
+
+describe('rewriteForAudio', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('should call generateText with the correct model and prompt', async () => {
+    const mockModel = {} as any
+    mockGetModelProvider.mockReturnValue(mockModel)
+    mockGenerateText.mockResolvedValue({ text: 'rewritten text' } as any)
+
+    const result = await rewriteForAudio('original text', 'claude')
+
+    expect(mockGetModelProvider).toHaveBeenCalledWith('claude')
+    expect(mockGenerateText).toHaveBeenCalledWith(
+      expect.objectContaining({
+        model: mockModel,
+        system: REWRITE_SYSTEM_PROMPT,
+        prompt: 'original text',
+      })
+    )
+    expect(result).toBe('rewritten text')
+  })
+
+  it('should not pass providerOptions (no thinking/reasoning)', async () => {
+    const mockModel = {} as any
+    mockGetModelProvider.mockReturnValue(mockModel)
+    mockGenerateText.mockResolvedValue({ text: 'rewritten' } as any)
+
+    await rewriteForAudio('text', 'gpt')
+
+    const callArgs = mockGenerateText.mock.calls[0][0]
+    expect(callArgs).not.toHaveProperty('providerOptions')
+    expect(callArgs).not.toHaveProperty('tools')
+  })
+
+  it('should propagate errors from generateText', async () => {
+    const mockModel = {} as any
+    mockGetModelProvider.mockReturnValue(mockModel)
+    mockGenerateText.mockRejectedValue(new Error('Model error'))
+
+    await expect(rewriteForAudio('text', 'claude')).rejects.toThrow('Model error')
   })
 })
 

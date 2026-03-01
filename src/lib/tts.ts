@@ -1,3 +1,6 @@
+import { generateText } from 'ai'
+import { getModelProvider } from '@/lib/models'
+
 export const REWRITE_SYSTEM_PROMPT = `You are rewriting a written response so it sounds natural when read aloud by a text-to-speech system.
 
 Rules:
@@ -10,6 +13,16 @@ Rules:
 - Keep the original author's personality and voice intact — if the original is witty, stay witty; if serious, stay serious.
 - Output pure plain text. No markdown, no bullet points, no numbered lists, no headers, no formatting of any kind.
 - Do not add any preamble like "Here is the rewritten version". Just output the rewritten text directly.`
+
+export async function rewriteForAudio(text: string, modelKey: string): Promise<string> {
+  const model = getModelProvider(modelKey)
+  const { text: rewritten } = await generateText({
+    model,
+    system: REWRITE_SYSTEM_PROMPT,
+    prompt: text,
+  })
+  return rewritten
+}
 
 export const MODEL_VOICES: Record<string, string> = {
   claude: 'coral',
