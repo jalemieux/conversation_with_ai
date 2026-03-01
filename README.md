@@ -53,7 +53,7 @@ flowchart TD
 3. **Round 1** — All selected models generate responses in parallel, appearing as each completes
 4. **Round 2** *(optional)* — Click "Start Round 2" to have each model read the others' Round 1 responses and react — agreements, disagreements, and new perspectives
 5. **Export** — Copy the full discussion as Markdown, plain text, or an X thread
-6. **Text-to-Speech** — Click the speaker icon on any response to hear it read aloud via OpenAI TTS, with a unique voice per model (Claude=coral, GPT=nova, Gemini=sage, Grok=ash). Audio is cached on disk so replaying never re-generates
+6. **Text-to-Speech** — Click the speaker icon on any response to hear it read aloud via OpenAI TTS, with a unique voice per model (Claude=coral, GPT=nova, Gemini=sage, Grok=ash). The original model rewrites its response for natural spoken delivery before TTS generation. Audio is cached on disk so replaying never re-generates
 7. **Inline Audio Player** — When audio loads, an inline mini-player appears inside the response card with play/pause, rewind/forward 10s, a seekable progress bar, and time display
 
 ## Key Technical Decisions
@@ -101,7 +101,7 @@ src/
 │   ├── augmenter.ts            # Prompt rewriting + 5-framing generation
 │   ├── orchestrator.ts         # Round 1 & 2 prompt builders
 │   ├── export.ts               # Markdown, text, X-thread formatters
-│   ├── tts.ts                  # Voice mapping, markdown stripping, chunking
+│   ├── tts.ts                  # Voice mapping, markdown stripping, chunking, read-aloud rewriting
 │   └── types.ts                # Shared TypeScript interfaces
 ├── hooks/
 │   └── useTTS.ts               # TTS audio playback state management

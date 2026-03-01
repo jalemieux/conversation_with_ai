@@ -49,7 +49,7 @@
 | System Prompt | `src/lib/system-prompt.ts` | Builds invisible system messages for LLM calls (prose style, depth, word targets) |
 | Types | `src/lib/types.ts` | Shared TypeScript interfaces |
 | Export | `src/lib/export.ts` | Markdown, text, X-thread formatters |
-| TTS Utils | `src/lib/tts.ts` | Voice mapping, markdown stripping, text chunking |
+| TTS Utils | `src/lib/tts.ts` | Voice mapping, markdown stripping, text chunking, `rewriteForAudio()` LLM rewrite, `REWRITE_SYSTEM_PROMPT` |
 | TTS API Route | `src/app/api/tts/route.ts` | Proxy to OpenAI gpt-4o-mini-tts |
 | useTTS Hook | `src/hooks/useTTS.ts` | Audio playback state management (toggle/stop/pause/seek/skip) with progress tracking |
 | SpeakerButton | `src/components/SpeakerButton.tsx` | Speaker icon with idle/loading/playing/error states; green dot when audio is cached |
@@ -92,9 +92,15 @@ SpeakerButton (click) → useTTS.toggle()
   → POST /api/tts { text, model, conversationId, round }
     → sanitize conversationId (strip path traversal)
     → check cache: data/audio/{conversationId}/{round}-{model}.mp3
-    → IF cached → serve file from disk
+    → IF cached .mp3 → serve file from disk
     → ELSE:
-      → stripMarkdown(text)
+      → check script cache: data/audio/{conversationId}/{round}-{model}.script.txt
+      → IF cached .script.txt → use cached rewrite
+      → ELSE IF conversationId present:
+        → rewriteForAudio(text, model) — calls the same model to rewrite for spoken delivery
+        → save to data/audio/{conversationId}/{round}-{model}.script.txt
+        → on failure → fall back to original text
+      → ELSE → stripMarkdown(text) (no rewrite when conversationId missing)
       → MODEL_VOICES[model] → voice
       → OpenAI gpt-4o-mini-tts (voice, input)
       → save to data/audio/{conversationId}/{round}-{model}.mp3
@@ -167,6 +173,21 @@ responses
 - Timing-safe comparison prevents timing attacks on password verification
 - Easy to upgrade to per-user auth later without changing the middleware contract
 
+### ADR-003: LLM Rewrite Step for Read-Aloud Audio
+
+**Status:** Accepted
+
+**Context:** Raw model responses contain markdown formatting, lists, headers, and written-style constructions that sound unnatural when spoken by TTS. Simply stripping markdown leaves text that is technically speakable but reads like an essay rather than spoken narration.
+
+**Decision:** Before sending text to OpenAI TTS, call the same model that wrote the response to rewrite it for spoken delivery via `rewriteForAudio()`. The rewrite prompt (`REWRITE_SYSTEM_PROMPT`) instructs the model to convert written prose into natural speech — removing visual formatting, expanding abbreviations, and restructuring for listening. Rewritten scripts are cached as `.script.txt` files alongside the audio `.mp3`. If the rewrite call fails, the pipeline falls back to the original stripped-markdown text. When no `conversationId` is provided, rewriting is skipped entirely.
+
+**Consequences:**
+- Audio sounds natural and conversational rather than like someone reading an essay aloud
+- Two-layer cache (script + audio) avoids redundant LLM calls on TTS retries
+- Graceful fallback means TTS never breaks due to a rewrite failure
+- Using the same model preserves the voice and personality of the original response
+- Additional LLM call adds latency on first play (mitigated by caching)
+
 ## Changelog
 
 - 2026-02-26: Initial implementation — full conversation flow with 4 models, 2 rounds, SSE streaming, export
@@ -178,3 +199,4 @@ responses
 - 2026-02-27: Essay mode toggle — boolean toggle on review page (default: on) controls whether system prompts are applied; flows as query param through conversation page to API route
 - 2026-02-27: Optional Round 2 — replaced SSE stream with parallel per-model fetch calls via new `/api/conversation/respond` endpoint; Round 2 is now user-triggered via button click; preserved search/sources support
 - 2026-02-28: TTS audio caching + inline player — generated audio cached to `data/audio/{conversationId}/{round}-{model}.mp3` (cache-first, no re-generation on replay); new AudioPlayer component with play/pause, skip -10s/+10s, seekable progress bar, time display; SpeakerButton shows green dot when cached; useTTS hook extended with pauseToggle, skipForward, skipBack, seek, and progress tracking
+- 2026-02-28: Read-aloud rewriting — `rewriteForAudio()` calls the original model to rewrite responses for spoken delivery before TTS; rewritten scripts cached as `.script.txt`; graceful fallback to original text on failure; skipped when no conversationId
