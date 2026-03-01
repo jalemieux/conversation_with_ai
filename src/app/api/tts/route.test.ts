@@ -312,4 +312,33 @@ describe('POST /api/tts', () => {
     expect(mockRewriteForAudio).not.toHaveBeenCalled()
     expect(mockCreate).toHaveBeenCalled()
   })
+
+  it('should fall back to original text when rewriteForAudio fails', async () => {
+    mockReadFile.mockRejectedValue(new Error('ENOENT'))
+    mockMkdir.mockResolvedValue(undefined)
+    mockWriteFile.mockResolvedValue(undefined)
+    mockRewriteForAudio.mockRejectedValue(new Error('Model API error'))
+
+    const mockArrayBuffer = new ArrayBuffer(8)
+    mockCreate.mockResolvedValue({
+      arrayBuffer: () => Promise.resolve(mockArrayBuffer),
+    })
+
+    const req = new Request('http://localhost/api/tts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        text: 'original fallback text',
+        model: 'claude',
+        conversationId: 'conv-fallback',
+        round: 1,
+      }),
+    })
+    const res = await POST(req)
+
+    expect(res.status).toBe(200)
+    expect(mockRewriteForAudio).toHaveBeenCalled()
+    // Should use original text as fallback (after stripMarkdown)
+    expect(mockCreate.mock.calls[0][0].input).toContain('original fallback text')
+  })
 })

@@ -53,10 +53,16 @@ export async function POST(request: Request) {
     const scriptPath = getScriptCachePath(conversationId, round, model)
     try {
       const cachedScript = await readFile(scriptPath, 'utf-8')
-      ttsText = cachedScript as string
+      ttsText = cachedScript
     } catch {
-      // Script cache miss — rewrite
-      const rewritten = await rewriteForAudio(text, model)
+      // Script cache miss — rewrite with fallback to original text
+      let rewritten: string
+      try {
+        rewritten = await rewriteForAudio(text, model)
+      } catch {
+        console.warn('rewriteForAudio failed, falling back to original text')
+        rewritten = text
+      }
       ttsText = rewritten
       // Fire-and-forget: save script
       const dir = path.dirname(scriptPath)
