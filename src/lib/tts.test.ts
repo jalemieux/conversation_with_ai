@@ -1,5 +1,20 @@
 import { describe, it, expect } from 'vitest'
-import { MODEL_VOICES, stripMarkdown, chunkText } from './tts'
+import { MODEL_VOICES, stripMarkdown, chunkText, REWRITE_SYSTEM_PROMPT } from './tts'
+
+describe('REWRITE_SYSTEM_PROMPT', () => {
+  it('should be a non-empty string', () => {
+    expect(REWRITE_SYSTEM_PROMPT).toBeTruthy()
+    expect(typeof REWRITE_SYSTEM_PROMPT).toBe('string')
+  })
+
+  it('should instruct to preserve substance and tone', () => {
+    expect(REWRITE_SYSTEM_PROMPT).toMatch(/preserve/i)
+  })
+
+  it('should instruct to output plain text only', () => {
+    expect(REWRITE_SYSTEM_PROMPT).toMatch(/no markdown/i)
+  })
+})
 
 describe('MODEL_VOICES', () => {
   it('should have a voice for each model', () => {
