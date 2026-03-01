@@ -17,6 +17,7 @@ export interface ModelConfig {
   name: string
   provider: string
   modelId: string
+  pricing: { inputPerMTok: number; outputPerMTok: number }
   providerOptions?: ProviderOptions
 }
 
@@ -26,6 +27,7 @@ export const MODEL_CONFIGS: Record<string, ModelConfig> = {
     name: 'Claude',
     provider: 'anthropic',
     modelId: 'claude-opus-4-6',
+    pricing: { inputPerMTok: 15, outputPerMTok: 75 },
     providerOptions: {
       anthropic: {
         thinking: { type: 'enabled', budgetTokens: 5000 },
@@ -37,6 +39,7 @@ export const MODEL_CONFIGS: Record<string, ModelConfig> = {
     name: 'GPT',
     provider: 'openai',
     modelId: 'gpt-5.1',
+    pricing: { inputPerMTok: 10, outputPerMTok: 30 },
     providerOptions: {
       openai: {
         reasoningEffort: 'medium',
@@ -48,6 +51,7 @@ export const MODEL_CONFIGS: Record<string, ModelConfig> = {
     name: 'Gemini',
     provider: 'google',
     modelId: 'gemini-3.1-pro-preview',
+    pricing: { inputPerMTok: 2.50, outputPerMTok: 15 },
     providerOptions: {
       google: {
         thinkingConfig: { thinkingBudget: 5000 },
@@ -59,6 +63,7 @@ export const MODEL_CONFIGS: Record<string, ModelConfig> = {
     name: 'Grok',
     provider: 'xai',
     modelId: 'grok-4-1-fast-reasoning',
+    pricing: { inputPerMTok: 3, outputPerMTok: 15 },
   },
 }
 
@@ -123,4 +128,15 @@ export function getSearchConfig(modelKey: string): SearchConfig {
     default:
       return {}
   }
+}
+
+export function calculateCost(
+  modelKey: string,
+  inputTokens: number,
+  outputTokens: number
+): number {
+  const config = MODEL_CONFIGS[modelKey]
+  if (!config) return 0
+  const { inputPerMTok, outputPerMTok } = config.pricing
+  return (inputTokens * inputPerMTok + outputTokens * outputPerMTok) / 1_000_000
 }
