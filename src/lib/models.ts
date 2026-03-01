@@ -27,7 +27,7 @@ export const MODEL_CONFIGS: Record<string, ModelConfig> = {
     name: 'Claude',
     provider: 'anthropic',
     modelId: 'claude-opus-4-6',
-    pricing: { inputPerMTok: 15, outputPerMTok: 75 },
+    pricing: { inputPerMTok: 5, outputPerMTok: 25 },
     providerOptions: {
       anthropic: {
         thinking: { type: 'enabled', budgetTokens: 5000 },
@@ -39,7 +39,7 @@ export const MODEL_CONFIGS: Record<string, ModelConfig> = {
     name: 'GPT',
     provider: 'openai',
     modelId: 'gpt-5.1',
-    pricing: { inputPerMTok: 10, outputPerMTok: 30 },
+    pricing: { inputPerMTok: 1.25, outputPerMTok: 10 },
     providerOptions: {
       openai: {
         reasoningEffort: 'medium',
@@ -51,7 +51,7 @@ export const MODEL_CONFIGS: Record<string, ModelConfig> = {
     name: 'Gemini',
     provider: 'google',
     modelId: 'gemini-3.1-pro-preview',
-    pricing: { inputPerMTok: 2.50, outputPerMTok: 15 },
+    pricing: { inputPerMTok: 2, outputPerMTok: 12 },
     providerOptions: {
       google: {
         thinkingConfig: { thinkingBudget: 5000 },
@@ -63,7 +63,7 @@ export const MODEL_CONFIGS: Record<string, ModelConfig> = {
     name: 'Grok',
     provider: 'xai',
     modelId: 'grok-4-1-fast-reasoning',
-    pricing: { inputPerMTok: 3, outputPerMTok: 15 },
+    pricing: { inputPerMTok: 0.20, outputPerMTok: 0.50 },
   },
 }
 
