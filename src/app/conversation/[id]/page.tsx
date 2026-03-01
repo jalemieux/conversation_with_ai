@@ -25,6 +25,17 @@ const MODEL_DOT: Record<string, string> = {
   grok: 'bg-grok',
 }
 
+function formatTokens(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`
+  return n.toString()
+}
+
+function formatCost(cost: number): string {
+  if (cost < 0.01) return `$${cost.toFixed(4)}`
+  return `$${cost.toFixed(2)}`
+}
+
 export default function ConversationDetailPage() {
   const params = useParams()
   const [conversation, setConversation] = useState<Conversation | null>(null)
@@ -111,6 +122,11 @@ export default function ConversationDetailPage() {
                     <span className={`w-2 h-2 rounded-full flex-shrink-0 ${dot}`} />
                     <span className={`font-medium ${accent}`}>{config.name}</span>
                     <span className="text-xs text-ink-faint">{config.provider} / {config.modelId}</span>
+                    {r.usage && (
+                      <span className="text-xs text-ink-faint tabular-nums">
+                        {formatTokens(r.usage.inputTokens)}↑ {formatTokens(r.usage.outputTokens)}↓ {formatCost(r.usage.cost)}
+                      </span>
+                    )}
                     <span className="ml-auto flex items-center">
                       <CopyButton content={r.content} />
                       <SpeakerButton
@@ -166,6 +182,11 @@ export default function ConversationDetailPage() {
                     <span className="w-2 h-2 rounded-full flex-shrink-0 bg-round2" />
                     <span className="font-medium text-round2">{config.name}</span>
                     <span className="text-xs text-ink-faint">{config.provider} / {config.modelId}</span>
+                    {r.usage && (
+                      <span className="text-xs text-ink-faint tabular-nums">
+                        {formatTokens(r.usage.inputTokens)}↑ {formatTokens(r.usage.outputTokens)}↓ {formatCost(r.usage.cost)}
+                      </span>
+                    )}
                     <span className="ml-auto flex items-center">
                       <CopyButton content={r.content} />
                       <SpeakerButton
