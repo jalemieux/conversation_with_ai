@@ -1,6 +1,13 @@
 // @vitest-environment node
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
+// Mock the tts module
+vi.mock('@/lib/tts', () => ({
+  MODEL_VOICES: { claude: 'coral', gpt: 'nova', gemini: 'sage', grok: 'ash' },
+  stripMarkdown: vi.fn((t: string) => t.replace(/\*\*/g, '').replace(/^#{1,6}\s+/gm, '').replace(/^[-*]\s+/gm, '').replace(/\n{3,}/g, '\n\n').trim()),
+  rewriteForAudio: vi.fn(),
+}))
+
 // Mock the openai module
 vi.mock('openai', () => {
   const mockCreate = vi.fn()
@@ -25,12 +32,14 @@ vi.mock('fs/promises', async (importOriginal) => {
 
 import { POST } from './route'
 import { readFile, writeFile, mkdir } from 'fs/promises'
+import { rewriteForAudio } from '@/lib/tts'
 
 // Access the mocks
 const { __mockCreate: mockCreate } = await import('openai') as any
 const mockReadFile = vi.mocked(readFile)
 const mockWriteFile = vi.mocked(writeFile)
 const mockMkdir = vi.mocked(mkdir)
+const mockRewriteForAudio = vi.mocked(rewriteForAudio)
 
 describe('POST /api/tts', () => {
   beforeEach(() => {
