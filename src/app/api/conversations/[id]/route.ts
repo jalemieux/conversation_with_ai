@@ -19,6 +19,11 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     responses: resps.map((r) => ({
       ...r,
       sources: r.sources ? JSON.parse(r.sources) : undefined,
+      usage: r.inputTokens != null ? {
+        inputTokens: r.inputTokens,
+        outputTokens: r.outputTokens ?? 0,
+        cost: r.cost ? parseFloat(r.cost) : 0,
+      } : undefined,
     })),
   })
 }
