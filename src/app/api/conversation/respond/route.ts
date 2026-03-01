@@ -62,8 +62,8 @@ export async function POST(request: Request) {
   // Extract sources (from search tools)
   const sources = await extractSources(result)
 
-  const inputTokens = result.usage.inputTokens ?? 0
-  const outputTokens = result.usage.outputTokens ?? 0
+  const inputTokens = result.usage?.inputTokens ?? 0
+  const outputTokens = result.usage?.outputTokens ?? 0
   const cost = calculateCost(modelKey, inputTokens, outputTokens)
 
   // Save response to DB
