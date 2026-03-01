@@ -65,8 +65,11 @@ export default function ConversationDetailPage() {
     return 'idle'
   }
 
-  const hasPlayer = (key: string) =>
-    tts.playingKey === key || tts.pausedKey === key
+  const activeKey = tts.playingKey || tts.pausedKey || tts.loadingKey
+  const activeModelName = activeKey ? (() => {
+    const model = activeKey.split('-').slice(1).join('-')
+    return getModelConfig(model).name
+  })() : undefined
 
   return (
     <div>
@@ -116,19 +119,6 @@ export default function ConversationDetailPage() {
                       />
                     </span>
                   </summary>
-                  {hasPlayer(`${r.round}-${r.model}`) && (
-                    <div className="px-5 pt-3">
-                      <AudioPlayer
-                        isPlaying={tts.playingKey === `${r.round}-${r.model}`}
-                        currentTime={tts.currentTime}
-                        duration={tts.duration}
-                        onPauseToggle={tts.pauseToggle}
-                        onSkipBack={tts.skipBack}
-                        onSkipForward={tts.skipForward}
-                        onSeek={tts.seek}
-                      />
-                    </div>
-                  )}
                   <div className="px-5 pb-5 border-t border-border pt-4">
                     <MarkdownContent content={r.content} />
                     {r.sources && r.sources.length > 0 && (
@@ -184,19 +174,6 @@ export default function ConversationDetailPage() {
                       />
                     </span>
                   </summary>
-                  {hasPlayer(`${r.round}-${r.model}`) && (
-                    <div className="px-5 pt-3">
-                      <AudioPlayer
-                        isPlaying={tts.playingKey === `${r.round}-${r.model}`}
-                        currentTime={tts.currentTime}
-                        duration={tts.duration}
-                        onPauseToggle={tts.pauseToggle}
-                        onSkipBack={tts.skipBack}
-                        onSkipForward={tts.skipForward}
-                        onSeek={tts.seek}
-                      />
-                    </div>
-                  )}
                   <div className="px-5 pb-5 border-t border-border pt-4">
                     <MarkdownContent content={r.content} />
                   </div>
@@ -225,6 +202,20 @@ export default function ConversationDetailPage() {
           Copy Text
         </button>
       </div>
+
+      {activeKey && (
+        <AudioPlayer
+          isPlaying={!!tts.playingKey}
+          currentTime={tts.currentTime}
+          duration={tts.duration}
+          modelName={activeModelName}
+          onPauseToggle={tts.pauseToggle}
+          onSkipBack={tts.skipBack}
+          onSkipForward={tts.skipForward}
+          onSeek={tts.seek}
+          onStop={tts.stop}
+        />
+      )}
     </div>
   )
 }

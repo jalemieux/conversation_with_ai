@@ -58,6 +58,23 @@ describe('AudioPlayer', () => {
     await userEvent.click(screen.getByLabelText('Skip forward 10 seconds'))
     expect(onSkipForward).toHaveBeenCalledOnce()
   })
+
+  it('renders model name when provided', () => {
+    render(<AudioPlayer {...defaultProps} modelName="Claude" />)
+    expect(screen.getByText('Claude')).toBeInTheDocument()
+  })
+
+  it('renders stop button when onStop provided', async () => {
+    const onStop = vi.fn()
+    render(<AudioPlayer {...defaultProps} onStop={onStop} />)
+    await userEvent.click(screen.getByLabelText('Stop playback'))
+    expect(onStop).toHaveBeenCalledOnce()
+  })
+
+  it('does not render stop button when onStop not provided', () => {
+    render(<AudioPlayer {...defaultProps} />)
+    expect(screen.queryByLabelText('Stop playback')).not.toBeInTheDocument()
+  })
 })
 
 describe('formatTime', () => {
