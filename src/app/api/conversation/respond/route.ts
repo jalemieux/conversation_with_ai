@@ -4,8 +4,7 @@ import { db } from '@/db'
 import { conversations, responses } from '@/db/schema'
 import { getModelProvider, getSearchConfig, MODEL_CONFIGS, calculateCost } from '@/lib/models'
 import { extractSources } from '@/lib/sources'
-import { buildRound1Prompt, buildRound2Prompt } from '@/lib/orchestrator'
-import { buildSystemPrompt } from '@/lib/system-prompt'
+import { buildRound1Prompt, buildRound2Prompt, buildSystemPrompt } from '@/lib/orchestrator'
 import type { Round1Response } from '@/lib/orchestrator'
 import { eq, and } from 'drizzle-orm'
 import { randomUUID } from 'crypto'
@@ -50,7 +49,7 @@ export async function POST(request: Request) {
 
   const result = await generateText({
     model: getModelProvider(modelKey),
-    ...(essayMode !== false && { system: buildSystemPrompt(round as 1 | 2) }),
+    system: buildSystemPrompt(round as 1 | 2, essayMode !== false),
     prompt,
     ...(config.providerOptions && { providerOptions: config.providerOptions }),
     ...(searchConfig.providerOptions && {

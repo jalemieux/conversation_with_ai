@@ -45,8 +45,7 @@
 | DB Singleton | `src/db/index.ts` | SQLite connection + table creation |
 | Model Config | `src/lib/models.ts` | 4 AI provider configurations |
 | Augmenter | `src/lib/augmenter.ts` | Multi-augmentation: generates all 5 topic framings + prompt rewriting |
-| Orchestrator | `src/lib/orchestrator.ts` | Round 1 + Round 2 prompt builders |
-| System Prompt | `src/lib/system-prompt.ts` | Builds invisible system messages for LLM calls (prose style, depth, word targets) |
+| Orchestrator | `src/lib/orchestrator.ts` | Round 1 + Round 2 prompt builders, system prompt construction (essay mode, depth, word targets) |
 | Types | `src/lib/types.ts` | Shared TypeScript interfaces |
 | Export | `src/lib/export.ts` | Markdown, text, X-thread formatters |
 | TTS Utils | `src/lib/tts.ts` | Voice mapping, markdown stripping, text chunking, `rewriteForAudio()` LLM rewrite, `REWRITE_SYSTEM_PROMPT` |
@@ -151,11 +150,12 @@ responses
 
 **Context:** Behavioural instructions (essay-style prose, think deeply, use current knowledge, word-count targets) were previously embedded directly in the augmented user prompt and the Round 2 orchestrator prompt. This made them visible to users on the review page and tangled formatting concerns with content concerns.
 
-**Decision:** Extract all behavioural meta-instructions into a dedicated `system-prompt.ts` module. The route handler passes `system: buildSystemPrompt(round)` to each `streamText` call. The user prompt carries only topic content; the system message carries only behavioural directives.
+**Decision:** Extract all behavioural meta-instructions into `buildSystemPrompt()` in `orchestrator.ts`. The route handler always passes `system: buildSystemPrompt(round, essayMode)` to each `generateText` call. The user prompt carries only topic content; the system message carries behavioural directives. The `essayMode` flag controls only the prose-style portion — base guidance (think deeply, word counts, R2 directness) is always included.
 
 **Consequences:**
 - Behavioural instructions are invisible to users — cleaner review page
 - Single source of truth for prose style, depth, and word targets
+- System prompt is always present — toggling essay mode off no longer strips all guidance
 - User prompt and system prompt are independently testable and editable
 - Round-specific additions (word counts) are isolated in one place
 
@@ -200,3 +200,4 @@ responses
 - 2026-02-27: Optional Round 2 — replaced SSE stream with parallel per-model fetch calls via new `/api/conversation/respond` endpoint; Round 2 is now user-triggered via button click; preserved search/sources support
 - 2026-02-28: TTS audio caching + inline player — generated audio cached to `data/audio/{conversationId}/{round}-{model}.mp3` (cache-first, no re-generation on replay); new AudioPlayer component with play/pause, skip -10s/+10s, seekable progress bar, time display; SpeakerButton shows green dot when cached; useTTS hook extended with pauseToggle, skipForward, skipBack, seek, and progress tracking
 - 2026-02-28: Read-aloud rewriting — `rewriteForAudio()` calls the original model to rewrite responses for spoken delivery before TTS; rewritten scripts cached as `.script.txt`; graceful fallback to original text on failure; skipped when no conversationId
+- 2026-03-01: Fold system-prompt into orchestrator — merged `system-prompt.ts` into `orchestrator.ts`; system prompt is now always passed (essay mode only controls prose style, not entire system guidance); deleted standalone module
