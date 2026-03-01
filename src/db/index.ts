@@ -33,7 +33,10 @@ function initDb(): BetterSQLite3Database<typeof schema> {
       round INTEGER NOT NULL,
       model TEXT NOT NULL,
       content TEXT NOT NULL,
-      sources TEXT
+      sources TEXT,
+      input_tokens INTEGER,
+      output_tokens INTEGER,
+      cost TEXT
     );
   `)
 
@@ -43,6 +46,16 @@ function initDb(): BetterSQLite3Database<typeof schema> {
   ).get() as { cnt: number }
   if (hasSourcesColumn.cnt === 0) {
     sqlite.exec(`ALTER TABLE responses ADD COLUMN sources TEXT`)
+  }
+
+  // Migration: add token tracking columns if missing
+  const hasInputTokens = sqlite.prepare(
+    `SELECT COUNT(*) as cnt FROM pragma_table_info('responses') WHERE name = 'input_tokens'`
+  ).get() as { cnt: number }
+  if (hasInputTokens.cnt === 0) {
+    sqlite.exec(`ALTER TABLE responses ADD COLUMN input_tokens INTEGER`)
+    sqlite.exec(`ALTER TABLE responses ADD COLUMN output_tokens INTEGER`)
+    sqlite.exec(`ALTER TABLE responses ADD COLUMN cost TEXT`)
   }
 
   _db = drizzle(sqlite, { schema })
