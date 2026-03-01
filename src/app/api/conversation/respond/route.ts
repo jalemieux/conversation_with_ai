@@ -2,7 +2,7 @@ import { generateText } from 'ai'
 import { NextResponse } from 'next/server'
 import { db } from '@/db'
 import { conversations, responses } from '@/db/schema'
-import { getModelProvider, getSearchConfig, MODEL_CONFIGS } from '@/lib/models'
+import { getModelProvider, getSearchConfig, MODEL_CONFIGS, calculateCost } from '@/lib/models'
 import { extractSources } from '@/lib/sources'
 import { buildRound1Prompt, buildRound2Prompt } from '@/lib/orchestrator'
 import { buildSystemPrompt } from '@/lib/system-prompt'
@@ -62,6 +62,10 @@ export async function POST(request: Request) {
   // Extract sources (from search tools)
   const sources = await extractSources(result)
 
+  const inputTokens = result.usage.inputTokens ?? 0
+  const outputTokens = result.usage.outputTokens ?? 0
+  const cost = calculateCost(modelKey, inputTokens, outputTokens)
+
   // Save response to DB
   const respId = randomUUID()
   await db.insert(responses).values({
@@ -71,6 +75,9 @@ export async function POST(request: Request) {
     model: modelKey,
     content: result.text,
     sources: sources.length > 0 ? JSON.stringify(sources) : null,
+    inputTokens,
+    outputTokens,
+    cost: cost.toFixed(6),
   })
 
   return NextResponse.json({
@@ -81,5 +88,6 @@ export async function POST(request: Request) {
     modelId: config.modelId,
     round,
     sources,
+    usage: { inputTokens, outputTokens, cost },
   })
 }
