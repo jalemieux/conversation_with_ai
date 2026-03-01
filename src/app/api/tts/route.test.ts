@@ -150,6 +150,7 @@ describe('POST /api/tts', () => {
     mockReadFile.mockRejectedValue(enoent)
     mockMkdir.mockResolvedValue(undefined)
     mockWriteFile.mockResolvedValue(undefined)
+    mockRewriteForAudio.mockResolvedValue('Hello')
 
     const mockArrayBuffer = new ArrayBuffer(8)
     mockCreate.mockResolvedValue({
@@ -197,6 +198,118 @@ describe('POST /api/tts', () => {
 
     expect(res.status).toBe(200)
     expect(mockReadFile).not.toHaveBeenCalled()
+    expect(mockCreate).toHaveBeenCalled()
+  })
+
+  it('should call rewriteForAudio and use rewritten text for TTS', async () => {
+    // Both caches miss
+    mockReadFile.mockRejectedValue(new Error('ENOENT'))
+    mockMkdir.mockResolvedValue(undefined)
+    mockWriteFile.mockResolvedValue(undefined)
+    mockRewriteForAudio.mockResolvedValue('rewritten for speaking')
+
+    const mockArrayBuffer = new ArrayBuffer(8)
+    mockCreate.mockResolvedValue({
+      arrayBuffer: () => Promise.resolve(mockArrayBuffer),
+    })
+
+    const req = new Request('http://localhost/api/tts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        text: '## Heading\n\n- bullet one\n- bullet two',
+        model: 'claude',
+        conversationId: 'conv-rewrite',
+        round: 1,
+      }),
+    })
+    const res = await POST(req)
+
+    expect(res.status).toBe(200)
+    expect(mockRewriteForAudio).toHaveBeenCalledWith(
+      '## Heading\n\n- bullet one\n- bullet two',
+      'claude'
+    )
+    // TTS should receive the rewritten text (after stripMarkdown)
+    expect(mockCreate.mock.calls[0][0].input).toContain('rewritten')
+  })
+
+  it('should use cached script text and skip rewrite', async () => {
+    // Audio cache miss, script cache hit
+    mockReadFile.mockImplementation((path: any) => {
+      if (String(path).endsWith('.mp3')) return Promise.reject(new Error('ENOENT'))
+      if (String(path).endsWith('.script.txt')) return Promise.resolve('cached script text' as any)
+      return Promise.reject(new Error('unexpected'))
+    })
+    mockMkdir.mockResolvedValue(undefined)
+    mockWriteFile.mockResolvedValue(undefined)
+
+    const mockArrayBuffer = new ArrayBuffer(8)
+    mockCreate.mockResolvedValue({
+      arrayBuffer: () => Promise.resolve(mockArrayBuffer),
+    })
+
+    const req = new Request('http://localhost/api/tts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        text: 'original text',
+        model: 'gpt',
+        conversationId: 'conv-cached',
+        round: 1,
+      }),
+    })
+    const res = await POST(req)
+
+    expect(res.status).toBe(200)
+    expect(mockRewriteForAudio).not.toHaveBeenCalled()
+    // TTS should use the cached script
+    expect(mockCreate.mock.calls[0][0].input).toContain('cached script')
+  })
+
+  it('should save rewritten script to disk', async () => {
+    mockReadFile.mockRejectedValue(new Error('ENOENT'))
+    mockMkdir.mockResolvedValue(undefined)
+    mockWriteFile.mockResolvedValue(undefined)
+    mockRewriteForAudio.mockResolvedValue('rewritten script content')
+
+    const mockArrayBuffer = new ArrayBuffer(8)
+    mockCreate.mockResolvedValue({
+      arrayBuffer: () => Promise.resolve(mockArrayBuffer),
+    })
+
+    const req = new Request('http://localhost/api/tts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        text: 'original',
+        model: 'claude',
+        conversationId: 'conv-save',
+        round: 1,
+      }),
+    })
+    await POST(req)
+
+    await new Promise((r) => setTimeout(r, 0))
+    const writePaths = mockWriteFile.mock.calls.map(c => String(c[0]))
+    expect(writePaths.some(p => p.endsWith('.script.txt'))).toBe(true)
+  })
+
+  it('should skip rewrite when caching is disabled (no conversationId)', async () => {
+    const mockArrayBuffer = new ArrayBuffer(8)
+    mockCreate.mockResolvedValue({
+      arrayBuffer: () => Promise.resolve(mockArrayBuffer),
+    })
+
+    const req = new Request('http://localhost/api/tts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: 'Hello **world**', model: 'claude' }),
+    })
+    const res = await POST(req)
+
+    expect(res.status).toBe(200)
+    expect(mockRewriteForAudio).not.toHaveBeenCalled()
     expect(mockCreate).toHaveBeenCalled()
   })
 })

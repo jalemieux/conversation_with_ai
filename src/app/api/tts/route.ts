@@ -30,7 +30,7 @@ export async function POST(request: Request) {
 
   const cachingEnabled = conversationId && round !== undefined && round !== null
 
-  // Check cache on hit
+  // 1. Check audio cache
   if (cachingEnabled) {
     const cachePath = getCachePath(conversationId, round, model)
     try {
@@ -43,12 +43,33 @@ export async function POST(request: Request) {
         },
       })
     } catch {
-      // Cache miss — fall through to generate
+      // Cache miss — fall through
     }
   }
 
+  // 2. Get text for TTS: rewrite if caching enabled, otherwise use original
+  let ttsText: string
+  if (cachingEnabled) {
+    const scriptPath = getScriptCachePath(conversationId, round, model)
+    try {
+      const cachedScript = await readFile(scriptPath, 'utf-8')
+      ttsText = cachedScript as string
+    } catch {
+      // Script cache miss — rewrite
+      const rewritten = await rewriteForAudio(text, model)
+      ttsText = rewritten
+      // Fire-and-forget: save script
+      const dir = path.dirname(scriptPath)
+      mkdir(dir, { recursive: true })
+        .then(() => writeFile(scriptPath, rewritten, 'utf-8'))
+        .catch(() => {})
+    }
+  } else {
+    ttsText = text
+  }
+
   const voice = MODEL_VOICES[model] ?? 'alloy'
-  const cleanText = stripMarkdown(text)
+  const cleanText = stripMarkdown(ttsText)
 
   try {
     const response = await openai.audio.speech.create({
