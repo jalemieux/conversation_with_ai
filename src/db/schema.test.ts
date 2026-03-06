@@ -22,7 +22,8 @@ describe('Database Schema', () => {
         augmented_prompt TEXT NOT NULL,
         topic_type TEXT NOT NULL,
         framework TEXT NOT NULL,
-        models TEXT NOT NULL
+        models TEXT NOT NULL,
+        user_id TEXT
       );
       CREATE TABLE responses (
         id TEXT PRIMARY KEY,
@@ -30,7 +31,10 @@ describe('Database Schema', () => {
         round INTEGER NOT NULL,
         model TEXT NOT NULL,
         content TEXT NOT NULL,
-        sources TEXT
+        sources TEXT,
+        input_tokens INTEGER,
+        output_tokens INTEGER,
+        cost TEXT
       );
     `)
   })
