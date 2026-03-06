@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import Database from 'better-sqlite3'
 import { drizzle } from 'drizzle-orm/better-sqlite3'
-import { conversations, responses } from './schema'
+import { conversations, responses, users, accounts, verificationTokens, userApiKeys } from './schema'
 import { eq } from 'drizzle-orm'
 import { randomUUID } from 'crypto'
 
@@ -85,5 +85,36 @@ describe('Database Schema', () => {
     expect(result).toHaveLength(1)
     expect(result[0].round).toBe(1)
     expect(result[0].model).toBe('claude')
+  })
+
+  describe('auth tables', () => {
+    it('users table has expected columns', () => {
+      const cols = Object.keys(users)
+      expect(cols).toContain('id')
+      expect(cols).toContain('email')
+      expect(cols).toContain('stripeCustomerId')
+      expect(cols).toContain('subscriptionStatus')
+    })
+
+    it('accounts table has expected columns', () => {
+      const cols = Object.keys(accounts)
+      expect(cols).toContain('userId')
+      expect(cols).toContain('provider')
+      expect(cols).toContain('providerAccountId')
+    })
+
+    it('verificationTokens table has expected columns', () => {
+      const cols = Object.keys(verificationTokens)
+      expect(cols).toContain('identifier')
+      expect(cols).toContain('token')
+      expect(cols).toContain('expires')
+    })
+
+    it('userApiKeys table has expected columns', () => {
+      const cols = Object.keys(userApiKeys)
+      expect(cols).toContain('userId')
+      expect(cols).toContain('provider')
+      expect(cols).toContain('encryptedKey')
+    })
   })
 })
