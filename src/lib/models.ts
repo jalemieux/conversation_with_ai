@@ -3,14 +3,27 @@ import { createOpenAI } from '@ai-sdk/openai'
 import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import { createXai } from '@ai-sdk/xai'
 
-const anthropic = createAnthropic({ apiKey: process.env.CWAI_ANTHROPIC_API_KEY })
-const openai = createOpenAI({ apiKey: process.env.CWAI_OPENAI_API_KEY })
-const google = createGoogleGenerativeAI({ apiKey: process.env.CWAI_GOOGLE_API_KEY })
-const xai = createXai({ apiKey: process.env.CWAI_XAI_API_KEY })
 import { tool, type LanguageModel, type ToolSet } from 'ai'
 import type { ProviderOptions } from '@ai-sdk/provider-utils'
 import { z } from 'zod'
 import { braveSearch, type BraveSearchResult } from './brave-search'
+
+const PLATFORM_KEYS: Record<string, string | undefined> = {
+  anthropic: process.env.CWAI_ANTHROPIC_API_KEY,
+  openai: process.env.CWAI_OPENAI_API_KEY,
+  google: process.env.CWAI_GOOGLE_API_KEY,
+  xai: process.env.CWAI_XAI_API_KEY,
+}
+
+function createProvider(providerName: string, apiKey: string): (modelId: string) => LanguageModel {
+  switch (providerName) {
+    case 'anthropic': return (modelId) => createAnthropic({ apiKey })(modelId)
+    case 'openai': return (modelId) => createOpenAI({ apiKey })(modelId)
+    case 'google': return (modelId) => createGoogleGenerativeAI({ apiKey })(modelId)
+    case 'xai': return (modelId) => createXai({ apiKey }).responses(modelId)
+    default: throw new Error(`Unknown provider: ${providerName}`)
+  }
+}
 
 export interface ModelConfig {
   id: string
@@ -67,17 +80,12 @@ export const MODEL_CONFIGS: Record<string, ModelConfig> = {
   },
 }
 
-const PROVIDERS: Record<string, (modelId: string) => LanguageModel> = {
-  anthropic: (modelId) => anthropic(modelId),
-  openai: (modelId) => openai(modelId),
-  google: (modelId) => google(modelId),
-  xai: (modelId) => xai.responses(modelId),
-}
-
-export function getModelProvider(modelKey: string): LanguageModel {
+export function getModelProvider(modelKey: string, apiKey?: string): LanguageModel {
   const config = MODEL_CONFIGS[modelKey]
   if (!config) throw new Error(`Unknown model: ${modelKey}`)
-  return PROVIDERS[config.provider](config.modelId)
+  const key = apiKey || PLATFORM_KEYS[config.provider]
+  if (!key) throw new Error(`No API key for provider: ${config.provider}`)
+  return createProvider(config.provider, key)(config.modelId)
 }
 
 export function getDefaultModels(): string[] {
@@ -90,7 +98,12 @@ export interface SearchConfig {
   providerOptions?: ProviderOptions
 }
 
-export function getSearchConfig(modelKey: string): SearchConfig {
+export function getSearchConfig(modelKey: string, apiKey?: string): SearchConfig {
+  const config = MODEL_CONFIGS[modelKey]
+  if (!config) return {}
+  const key = apiKey || PLATFORM_KEYS[config.provider]
+  if (!key) return {}
+
   switch (modelKey) {
     case 'claude':
       return {
@@ -107,24 +120,24 @@ export function getSearchConfig(modelKey: string): SearchConfig {
         },
         maxSteps: 2,
       }
-    case 'gpt':
+    case 'gpt': {
+      const oa = createOpenAI({ apiKey: key })
       return {
-        tools: {
-          web_search: openai.tools.webSearch({ searchContextSize: 'medium' }),
-        },
+        tools: { web_search: oa.tools.webSearch({ searchContextSize: 'medium' }) },
       }
-    case 'gemini':
+    }
+    case 'gemini': {
+      const g = createGoogleGenerativeAI({ apiKey: key })
       return {
-        tools: {
-          google_search: google.tools.googleSearch({}),
-        },
+        tools: { google_search: g.tools.googleSearch({}) },
       }
-    case 'grok':
+    }
+    case 'grok': {
+      const x = createXai({ apiKey: key })
       return {
-        tools: {
-          web_search: xai.tools.webSearch(),
-        },
+        tools: { web_search: x.tools.webSearch() },
       }
+    }
     default:
       return {}
   }
