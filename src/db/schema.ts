@@ -9,6 +9,7 @@ export const conversations = sqliteTable('conversations', {
   topicType: text('topic_type').notNull(),
   framework: text('framework').notNull(),
   models: text('models').notNull(), // JSON array of model names
+  userId: text('user_id').references(() => users.id),
 })
 
 export const responses = sqliteTable('responses', {
