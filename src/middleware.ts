@@ -1,12 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { verifyToken, COOKIE_NAME } from '@/lib/auth'
 
-const PUBLIC_PATHS = ['/login', '/api/auth']
+const PUBLIC_PATHS = ['/login', '/api/auth', '/api/stripe/webhook']
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // Allow public paths and static assets
   if (
     PUBLIC_PATHS.some(p => pathname.startsWith(p)) ||
     pathname.startsWith('/_next/') ||
@@ -15,11 +13,11 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
-  const token = request.cookies.get(COOKIE_NAME)?.value
+  const sessionToken = request.cookies.get('authjs.session-token')?.value
+    || request.cookies.get('__Secure-authjs.session-token')?.value
 
-  if (!token || !(await verifyToken(token))) {
-    const loginUrl = new URL('/login', request.url)
-    return NextResponse.redirect(loginUrl)
+  if (!sessionToken) {
+    return NextResponse.redirect(new URL('/login', request.url))
   }
 
   return NextResponse.next()
