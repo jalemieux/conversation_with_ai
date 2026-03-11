@@ -6,6 +6,7 @@ import { eq, and } from 'drizzle-orm'
 import { randomUUID } from 'crypto'
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  trustHost: true,
   providers: [
     Resend({
       apiKey: process.env.CWAI_RESEND_API_KEY,
