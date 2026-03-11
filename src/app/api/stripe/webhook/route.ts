@@ -38,8 +38,10 @@ export async function POST(request: NextRequest) {
     }
     case 'invoice.paid': {
       const invoice = event.data.object as Stripe.Invoice
-      if (invoice.customer && invoice.subscription) {
-        const subscription = await stripe.subscriptions.retrieve(invoice.subscription as string)
+      const invoiceSubscriptionId = invoice.parent?.subscription_details?.subscription
+      if (invoice.customer && invoiceSubscriptionId) {
+        const subId = typeof invoiceSubscriptionId === 'string' ? invoiceSubscriptionId : invoiceSubscriptionId.id
+        const subscription = await stripe.subscriptions.retrieve(subId)
         const periodEnd = subscription.items.data[0]?.current_period_end
         await db.update(users).set({
           subscriptionStatus: 'active',
