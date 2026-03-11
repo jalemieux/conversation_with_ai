@@ -7,7 +7,6 @@ vi.mock('next/navigation', () => ({
     const augmentations = JSON.stringify({
       prediction: { framework: 'scenario analysis', augmentedPrompt: 'pred prompt' },
       opinion: { framework: 'steel man', augmentedPrompt: 'opinion prompt' },
-      comparison: { framework: 'strongest case', augmentedPrompt: 'comp prompt' },
       trend_analysis: { framework: 'timeline', augmentedPrompt: 'trend prompt' },
       open_question: { framework: 'multiple angles', augmentedPrompt: 'open prompt' },
     })
@@ -48,11 +47,10 @@ describe('ReviewPage', () => {
     })
   })
 
-  it('renders all 5 topic type tags', () => {
+  it('renders all 4 topic type tags', () => {
     render(<ReviewPage />)
     expect(screen.getByText('prediction')).toBeInTheDocument()
     expect(screen.getByText('opinion')).toBeInTheDocument()
-    expect(screen.getByText('comparison')).toBeInTheDocument()
     expect(screen.getByText('trend_analysis')).toBeInTheDocument()
     expect(screen.getByText('open_question')).toBeInTheDocument()
   })

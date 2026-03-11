@@ -4,6 +4,13 @@ import { Suspense, useState, useMemo } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { TOPIC_TYPES, type TopicType, type AugmentationsMap } from '@/lib/augmenter'
 
+const TOPIC_DESCRIPTIONS: Record<TopicType, string> = {
+  prediction: 'Explores possible futures through scenario analysis and cascading effects',
+  opinion: 'Stress-tests a position by building the strongest case for and against it',
+  trend_analysis: 'Places the topic on a timeline with recent context and trajectory',
+  open_question: 'Examines the question from multiple angles and surfaces trade-offs',
+}
+
 function ReviewContent() {
   const searchParams = useSearchParams()
 
@@ -115,7 +122,9 @@ function ReviewContent() {
             </button>
           ))}
         </div>
-        <span className="px-2.5 py-1 bg-cream-dark text-ink-muted rounded-lg text-xs font-medium">{currentFramework}</span>
+        <p className="text-xs text-ink-muted mt-1.5">
+          <span className="font-medium text-ink-faint">{currentFramework}</span> — {TOPIC_DESCRIPTIONS[selectedType]}
+        </p>
       </div>
 
       <div className="animate-fade-up stagger-3 mb-6 flex items-center gap-3">

@@ -1,7 +1,6 @@
 export const TOPIC_TYPES = [
   'prediction',
   'opinion',
-  'comparison',
   'trend_analysis',
   'open_question',
 ] as const
@@ -27,12 +26,11 @@ export interface AugmenterResult {
 }
 
 export function buildAugmenterPrompt(rawInput: string): string {
-  return `You are a prompt augmenter. Given a user's raw topic or question, you must generate an augmented prompt for EACH of the 5 topic types below, using the appropriate analytical framework for each.
+  return `You are a prompt augmenter. Given a user's raw topic or question, you must generate an augmented prompt for EACH of the 4 topic types below, using the appropriate analytical framework for each.
 
 Topic types and their frameworks:
 - prediction → scenario analysis, 1st/2nd order effects
-- opinion → steel man vs straw man
-- comparison → strongest case for each side
+- opinion → steel man vs straw man, strongest case for each side
 - trend_analysis → timeline framing, recent context
 - open_question → multiple angles, trade-offs
 
@@ -49,11 +47,10 @@ Also pick which topic_type best fits the input as "recommended".
 
 Respond with ONLY a JSON object (no markdown, no explanation):
 {
-  "recommended": "one of: prediction, opinion, comparison, trend_analysis, open_question",
+  "recommended": "one of: prediction, opinion, trend_analysis, open_question",
   "augmentations": {
     "prediction": { "framework": "brief framework name", "augmented_prompt": "rewritten prompt" },
     "opinion": { "framework": "brief framework name", "augmented_prompt": "rewritten prompt" },
-    "comparison": { "framework": "brief framework name", "augmented_prompt": "rewritten prompt" },
     "trend_analysis": { "framework": "brief framework name", "augmented_prompt": "rewritten prompt" },
     "open_question": { "framework": "brief framework name", "augmented_prompt": "rewritten prompt" }
   }
