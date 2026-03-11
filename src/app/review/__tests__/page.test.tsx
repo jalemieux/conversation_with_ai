@@ -73,23 +73,23 @@ describe('ReviewPage', () => {
     expect(screen.getAllByText('steel man').length).toBeGreaterThan(0)
   })
 
-  it('renders essay mode toggle defaulting to on', () => {
+  it('renders essay mode toggle defaulting to off', () => {
     render(<ReviewPage />)
     const toggle = screen.getByRole('checkbox', { name: /essay mode/i })
-    expect(toggle).toHaveAttribute('aria-checked', 'true')
+    expect(toggle).toHaveAttribute('aria-checked', 'false')
   })
 
-  it('includes essayMode=true in run URL by default', () => {
+  it('includes essayMode=false in run URL by default', () => {
     render(<ReviewPage />)
     fireEvent.click(screen.getByText('Run Conversation'))
-    expect(hrefSpy).toHaveBeenCalledWith(expect.stringContaining('essayMode=true'))
+    expect(hrefSpy).toHaveBeenCalledWith(expect.stringContaining('essayMode=false'))
   })
 
-  it('includes essayMode=false when toggle is off', () => {
+  it('includes essayMode=true when toggle is on', () => {
     render(<ReviewPage />)
     const toggle = screen.getByRole('checkbox', { name: /essay mode/i })
     fireEvent.click(toggle)
     fireEvent.click(screen.getByText('Run Conversation'))
-    expect(hrefSpy).toHaveBeenCalledWith(expect.stringContaining('essayMode=false'))
+    expect(hrefSpy).toHaveBeenCalledWith(expect.stringContaining('essayMode=true'))
   })
 })

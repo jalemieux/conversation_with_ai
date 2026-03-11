@@ -63,7 +63,7 @@ function ConversationContent() {
   const tts = useTTS()
 
   const models = (searchParams.get('models') ?? '').split(',').filter(Boolean)
-  const essayMode = searchParams.get('essayMode') !== 'false'
+  const essayMode = searchParams.get('essayMode') === 'true'
 
   const callModel = useCallback(async (convId: string, modelKey: string, round: number): Promise<ModelResponse> => {
     const res = await fetch('/api/conversation/respond', {

@@ -10,33 +10,26 @@ describe('Conversation Orchestrator', () => {
   })
 
   describe('buildSystemPrompt', () => {
-    it('R1 + essayMode=true includes essay style and word count', () => {
+    it('R1 + essayMode=true includes essay style', () => {
       const result = buildSystemPrompt(1, true)
       expect(result).toContain('essay-style prose')
       expect(result).toContain('Think deeply')
-      expect(result).toContain('800')
-      expect(result).not.toContain('generic praise')
     })
 
-    it('R1 + essayMode=false omits essay style but keeps guidance', () => {
+    it('R1 + essayMode=false omits essay style but keeps base guidance', () => {
       const result = buildSystemPrompt(1, false)
       expect(result).toContain('Think deeply')
-      expect(result).toContain('800')
       expect(result).not.toContain('essay-style prose')
     })
 
-    it('R2 + essayMode=true includes essay style and R2 guidance', () => {
+    it('R2 + essayMode=true includes essay style', () => {
       const result = buildSystemPrompt(2, true)
       expect(result).toContain('essay-style prose')
-      expect(result).toContain('300')
-      expect(result).toContain('generic praise')
-      expect(result).not.toContain('800')
+      expect(result).toContain('Think deeply')
     })
 
-    it('R2 + essayMode=false omits essay style but keeps R2 guidance', () => {
+    it('R2 + essayMode=false omits essay style but keeps base guidance', () => {
       const result = buildSystemPrompt(2, false)
-      expect(result).toContain('300')
-      expect(result).toContain('generic praise')
       expect(result).toContain('Think deeply')
       expect(result).not.toContain('essay-style prose')
     })

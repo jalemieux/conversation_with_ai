@@ -34,7 +34,7 @@ function ReviewContent() {
   )
   const [isEdited, setIsEdited] = useState(false)
   const [regenerating, setRegenerating] = useState(false)
-  const [essayMode, setEssayMode] = useState(true)
+  const [essayMode, setEssayMode] = useState(false)
   const [currentAugmentations, setCurrentAugmentations] = useState(augmentations)
 
   const currentFramework = currentAugmentations[selectedType]?.framework ?? ''
@@ -147,6 +147,9 @@ function ReviewContent() {
             }`}
           />
         </button>
+        <p className="text-xs text-ink-muted mt-0.5">
+          Shapes responses into flowing, essay-style prose — the kind you'd find in The Economist or The Atlantic. Without it, models answer in their default style.
+        </p>
       </div>
 
       <div className="animate-fade-up stagger-4 mb-8">
