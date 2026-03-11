@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-const PUBLIC_PATHS = ['/login', '/landing-a', '/landing-b', '/api/auth', '/api/stripe/webhook', '/api/augment', '/api/conversation']
+const PUBLIC_PATHS = ['/login', '/landing-a', '/landing-b', '/api/auth', '/api/stripe/webhook']
 
 export async function proxy(request: NextRequest) {
+  if (process.env.NODE_ENV === 'development') {
+    return NextResponse.next()
+  }
+
   const { pathname } = request.nextUrl
 
   if (

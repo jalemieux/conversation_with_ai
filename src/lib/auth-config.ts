@@ -5,7 +5,9 @@ import { users, accounts, verificationTokens } from '@/db/schema'
 import { eq, and } from 'drizzle-orm'
 import { randomUUID } from 'crypto'
 
-export const { handlers, auth, signIn, signOut } = NextAuth({
+const DEV_USER_ID = 'dev-user-00000000-0000-0000-0000-000000000000'
+
+const nextAuth = NextAuth({
   trustHost: true,
   providers: [
     Resend({
@@ -115,3 +117,31 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
   },
 })
+
+export const { handlers, signIn, signOut } = nextAuth
+
+async function ensureDevUser() {
+  const [existing] = await db.select().from(users).where(eq(users.id, DEV_USER_ID))
+  if (!existing) {
+    await db.insert(users).values({
+      id: DEV_USER_ID,
+      email: 'dev@localhost',
+      name: 'Dev User',
+      emailVerified: new Date().toISOString(),
+      image: null,
+    })
+  }
+}
+
+let devUserReady: Promise<void> | null = null
+
+export const auth: typeof nextAuth.auth = process.env.NODE_ENV === 'development'
+  ? (async (...args: Parameters<typeof nextAuth.auth>) => {
+      if (!devUserReady) devUserReady = ensureDevUser()
+      await devUserReady
+      return {
+        user: { id: DEV_USER_ID, email: 'dev@localhost', name: 'Dev User' },
+        expires: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+      }
+    }) as typeof nextAuth.auth
+  : nextAuth.auth
