@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-const PUBLIC_PATHS = ['/login', '/api/auth', '/api/stripe/webhook']
+const PUBLIC_PATHS = ['/login', '/landing-a', '/landing-b', '/api/auth', '/api/stripe/webhook']
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
