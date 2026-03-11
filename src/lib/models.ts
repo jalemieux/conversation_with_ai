@@ -142,7 +142,7 @@ export function getSearchConfig(modelKey: string, apiKey?: string): SearchConfig
             },
           }),
         },
-        maxSteps: 2,
+        maxSteps: 3,
       }
     case 'gpt': {
       const oa = createOpenAI({ apiKey: key })
