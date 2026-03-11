@@ -19,6 +19,7 @@ export interface ModelConfig {
   modelId: string
   pricing: { inputPerMTok: number; outputPerMTok: number }
   providerOptions?: ProviderOptions
+  systemPrompt?: string
 }
 
 export const MODEL_CONFIGS: Record<string, ModelConfig> = {
@@ -45,6 +46,16 @@ export const MODEL_CONFIGS: Record<string, ModelConfig> = {
         reasoningEffort: 'medium',
       },
     },
+    systemPrompt: `Provide a rigorous, well-reasoned analysis of the user’s question.
+	•	Interpret the question in its strongest reasonable form (steelman it where appropriate).
+	•	Identify underlying assumptions on all sides.
+	•	Present the strongest arguments for each relevant position before critiquing them.
+	•	Distinguish clearly between established facts, logical inferences, projections, and speculation.
+	•	Highlight trade-offs, tensions, and second-order implications.
+	•	Note where uncertainty or missing data materially affects conclusions.
+	•	Avoid rhetorical framing; prioritize analytical clarity and intellectual fairness.
+
+Conclude with a balanced synthesis that clarifies what is most defensible given current knowledge.`
   },
   gemini: {
     id: 'gemini',
@@ -64,6 +75,19 @@ export const MODEL_CONFIGS: Record<string, ModelConfig> = {
     provider: 'xai',
     modelId: 'grok-4-1-fast-reasoning',
     pricing: { inputPerMTok: 0.20, outputPerMTok: 0.50 },
+    systemPrompt: `
+Respond to the user's query with the highest quality, accurate, and thoughtful answer possible. 
+
+1. **Analyze deeply**: Break down the question step-by-step, considering nuances, assumptions, and implications. Use chain-of-thought reasoning before finalizing your response.
+
+2. **Draw on current knowledge**: Leverage the most up-to-date information available, verifying facts where possible. Cite reliable sources inline (e.g., [Source: URL or reference]) and note any uncertainties.
+
+3. **Structure for clarity**: Use headings, bullet points, numbered lists, or tables as needed. Start with a concise summary, end with actionable takeaways or next steps. Aim for 600-800 words unless specified otherwise—comprehensive yet concise.
+
+4. **Prioritize impact**: Treat this as high-stakes advice; be objective, unbiased, and evidence-based. The user may act on your response, so minimize risks and maximize value.
+
+If tools or external checks are available, use them proactively.
+    `
   },
 }
 

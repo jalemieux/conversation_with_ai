@@ -4,7 +4,7 @@ import { db } from '@/db'
 import { conversations, responses } from '@/db/schema'
 import { getModelProvider, getSearchConfig, MODEL_CONFIGS, calculateCost } from '@/lib/models'
 import { extractSources } from '@/lib/sources'
-import { buildRound1Prompt, buildRound2Prompt, buildSystemPrompt } from '@/lib/orchestrator'
+import { buildUserPrompt, buildSystemPrompt } from '@/lib/orchestrator'
 import type { Round1Response } from '@/lib/orchestrator'
 import { eq, and } from 'drizzle-orm'
 import { randomUUID } from 'crypto'
@@ -27,29 +27,31 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Conversation not found' }, { status: 404 })
   }
 
-  // Build prompt based on round
-  let prompt: string
-  if (round === 1) {
-    prompt = buildRound1Prompt(conv.augmentedPrompt, config.name)
-  } else if (round === 2) {
+  // Validate round
+  if (round !== 1 && round !== 2) {
+    return NextResponse.json({ error: 'round must be 1 or 2' }, { status: 400 })
+  }
+
+  // Fetch R1 responses if round 2
+  let round1Responses: Round1Response[] | undefined
+  if (round === 2) {
     const round1Rows = await db.select().from(responses).where(
       and(eq(responses.conversationId, conversationId), eq(responses.round, 1))
     )
-    const round1Responses: Round1Response[] = round1Rows.map((r) => ({
+    round1Responses = round1Rows.map((r) => ({
       model: MODEL_CONFIGS[r.model]?.name ?? r.model,
       content: r.content,
     }))
-    prompt = buildRound2Prompt(conv.augmentedPrompt, config.name, round1Responses)
-  } else {
-    return NextResponse.json({ error: 'round must be 1 or 2' }, { status: 400 })
   }
+
+  const prompt = buildUserPrompt(conv.augmentedPrompt, config.name, round1Responses)
 
   // Build model options — search only in Round 1
   const searchConfig = round === 1 ? getSearchConfig(modelKey) : {}
 
   const result = await generateText({
     model: getModelProvider(modelKey),
-    system: buildSystemPrompt(round as 1 | 2, essayMode !== false),
+    system: buildSystemPrompt(round as 1 | 2, essayMode !== false, config.systemPrompt),
     prompt,
     ...(config.providerOptions && { providerOptions: config.providerOptions }),
     ...(searchConfig.providerOptions && {

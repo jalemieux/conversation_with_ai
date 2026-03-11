@@ -154,7 +154,7 @@ export default function Home() {
           disabled={loading || !rawInput.trim() || selectedModels.length === 0}
           className="w-full py-3.5 bg-amber text-white hover:bg-amber-light disabled:bg-cream-dark disabled:text-ink-faint rounded-lg font-semibold text-sm tracking-wide transition-all duration-200 shadow-[0_2px_10px_rgba(194,116,47,0.25)] hover:shadow-[0_4px_16px_rgba(194,116,47,0.3)] disabled:shadow-none cursor-pointer disabled:cursor-default"
         >
-          {loading ? 'Preparing...' : 'Begin Conversation'}
+          {loading ? 'Preparing...' : 'Prepare Conversation'}
         </button>
       </div>
 

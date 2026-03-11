@@ -1,14 +1,14 @@
-const BASE_SYSTEM = `You are a participant in a published multi-model conversation. Think deeply and carefully — the questions asked can be complex and nuanced. Draw on the most up-to-date knowledge available to you.`
+const BASE_SYSTEM = `Answer the user's question as best you can. Think deeply and carefully — the questions asked can be complex and nuanced. Draw on the most up-to-date knowledge available to you. The user expects a serious answer and might make decisions with real consequences based on what you say.`
 
 const ESSAY_STYLE = `Write in flowing, essay-style prose — the kind you'd find in The Economist or The Atlantic. Develop your argument through connected paragraphs, not bullet points or numbered lists. You may occasionally use a brief structured element (a short comparison, a key enumeration) when it genuinely serves clarity, but the default mode is always discursive prose.`
 
-const ROUND_1_ADDITIONS = `Aim for roughly 600–800 words.`
+//const ROUND_1_ADDITIONS = `Aim for roughly 600–800 words.`
 const ROUND_2_ADDITIONS = `Be direct and substantive — avoid generic praise. Aim for roughly 300–500 words.`
 
-export function buildSystemPrompt(round: 1 | 2, essayMode: boolean): string {
-  const parts = [BASE_SYSTEM]
+export function buildSystemPrompt(round: 1 | 2, essayMode: boolean, modelSystemPrompt?: string): string {
+  const parts = [modelSystemPrompt ?? BASE_SYSTEM]
   if (essayMode) parts.push(ESSAY_STYLE)
-  parts.push(round === 1 ? ROUND_1_ADDITIONS : ROUND_2_ADDITIONS)
+  //parts.push(round === 1 ? ROUND_1_ADDITIONS : ROUND_2_ADDITIONS)
   return parts.join('\n\n')
 }
 
@@ -17,15 +17,13 @@ export interface Round1Response {
   content: string
 }
 
-export function buildRound1Prompt(augmentedPrompt: string, modelName: string): string {
-  return `${augmentedPrompt}`
-}
-
-export function buildRound2Prompt(
+export function buildUserPrompt(
   augmentedPrompt: string,
   modelName: string,
-  round1Responses: Round1Response[]
+  round1Responses?: Round1Response[]
 ): string {
+  if (!round1Responses) return augmentedPrompt
+
   const otherResponses = round1Responses
     .filter((r) => r.model !== modelName)
     .map((r) => `### ${r.model}\n${r.content}`)
