@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-const PUBLIC_PATHS = ['/login', '/landing-a', '/landing-b', '/api/auth', '/api/stripe/webhook']
+const PUBLIC_PATHS = ['/login', '/landing-a', '/landing-b', '/landing-c', '/api/auth', '/api/stripe/webhook']
 
 export async function proxy(request: NextRequest) {
   if (process.env.NODE_ENV === 'development') {
@@ -21,7 +21,7 @@ export async function proxy(request: NextRequest) {
     || request.cookies.get('__Secure-authjs.session-token')?.value
 
   if (!sessionToken) {
-    return NextResponse.redirect(new URL('/login', request.url))
+    return NextResponse.redirect(new URL('/landing-c', request.url))
   }
 
   return NextResponse.next()
