@@ -118,7 +118,6 @@ export function getDefaultModels(): string[] {
 
 export interface SearchConfig {
   tools?: ToolSet
-  maxSteps?: number
   providerOptions?: ProviderOptions
 }
 
@@ -142,7 +141,6 @@ export function getSearchConfig(modelKey: string, apiKey?: string): SearchConfig
             },
           }),
         },
-        maxSteps: 3,
       }
     case 'gpt': {
       const oa = createOpenAI({ apiKey: key })

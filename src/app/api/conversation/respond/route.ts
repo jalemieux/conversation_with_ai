@@ -1,4 +1,4 @@
-import { generateText } from 'ai'
+import { generateText, stepCountIs } from 'ai'
 import { NextResponse } from 'next/server'
 import { db } from '@/db'
 import { conversations, responses, userApiKeys, users } from '@/db/schema'
@@ -88,7 +88,7 @@ export async function POST(request: Request) {
       ...(searchConfig.providerOptions && {
         providerOptions: { ...config.providerOptions, ...searchConfig.providerOptions },
       }),
-      ...(searchConfig.tools && { tools: searchConfig.tools, maxSteps: 3 }),
+      ...(searchConfig.tools && { tools: searchConfig.tools, stopWhen: stepCountIs(3) }),
     })
 
     // Log step details for debugging
