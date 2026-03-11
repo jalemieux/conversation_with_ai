@@ -26,11 +26,12 @@ export async function POST(request: NextRequest) {
       const session = event.data.object as Stripe.Checkout.Session
       if (session.customer && session.subscription) {
         const subscription = await stripe.subscriptions.retrieve(session.subscription as string)
+        const periodEnd = subscription.items.data[0]?.current_period_end
         await db.update(users).set({
           stripeCustomerId: session.customer as string,
           stripeSubscriptionId: subscription.id,
           subscriptionStatus: 'active',
-          subscriptionCurrentPeriodEnd: new Date(subscription.current_period_end * 1000).toISOString(),
+          ...(periodEnd && { subscriptionCurrentPeriodEnd: new Date(periodEnd * 1000).toISOString() }),
         }).where(eq(users.stripeCustomerId, session.customer as string))
       }
       break
@@ -39,18 +40,20 @@ export async function POST(request: NextRequest) {
       const invoice = event.data.object as Stripe.Invoice
       if (invoice.customer && invoice.subscription) {
         const subscription = await stripe.subscriptions.retrieve(invoice.subscription as string)
+        const periodEnd = subscription.items.data[0]?.current_period_end
         await db.update(users).set({
           subscriptionStatus: 'active',
-          subscriptionCurrentPeriodEnd: new Date(subscription.current_period_end * 1000).toISOString(),
+          ...(periodEnd && { subscriptionCurrentPeriodEnd: new Date(periodEnd * 1000).toISOString() }),
         }).where(eq(users.stripeCustomerId, invoice.customer as string))
       }
       break
     }
     case 'customer.subscription.updated': {
       const subscription = event.data.object as Stripe.Subscription
+      const periodEnd = subscription.items.data[0]?.current_period_end
       await db.update(users).set({
         subscriptionStatus: subscription.status === 'active' ? 'active' : subscription.status,
-        subscriptionCurrentPeriodEnd: new Date(subscription.current_period_end * 1000).toISOString(),
+        ...(periodEnd && { subscriptionCurrentPeriodEnd: new Date(periodEnd * 1000).toISOString() }),
       }).where(eq(users.stripeSubscriptionId, subscription.id))
       break
     }
