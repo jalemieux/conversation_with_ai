@@ -1,9 +1,13 @@
 import OpenAI from 'openai'
+import { NextResponse } from 'next/server'
 import { readFile, writeFile, mkdir } from 'fs/promises'
 import path from 'path'
 import { MODEL_VOICES, stripMarkdown, rewriteForAudio } from '@/lib/tts'
-
-const openai = new OpenAI({ apiKey: process.env.CWAI_OPENAI_API_KEY })
+import { auth } from '@/lib/auth-config'
+import { db } from '@/db'
+import { users, userApiKeys } from '@/db/schema'
+import { eq, and } from 'drizzle-orm'
+import { decrypt } from '@/lib/encryption'
 
 function getCachePath(conversationId: string, round: number, model: string): string {
   const safeId = conversationId.replace(/[^a-zA-Z0-9_-]/g, '')
@@ -18,6 +22,26 @@ function getScriptCachePath(conversationId: string, round: number, model: string
 }
 
 export async function POST(request: Request) {
+  const session = await auth()
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  let openaiKey = process.env.CWAI_OPENAI_API_KEY
+  const [userKey] = await db.select().from(userApiKeys).where(
+    and(eq(userApiKeys.userId, session.user.id), eq(userApiKeys.provider, 'openai'))
+  )
+  if (userKey) {
+    openaiKey = decrypt(userKey.encryptedKey)
+  } else {
+    const [user] = await db.select().from(users).where(eq(users.id, session.user.id))
+    if (user?.subscriptionStatus !== 'active') {
+      return NextResponse.json({ error: 'No OpenAI key available for TTS' }, { status: 403 })
+    }
+  }
+
+  const openai = new OpenAI({ apiKey: openaiKey })
+
   const body = await request.json()
   const { text, model, conversationId, round } = body
 

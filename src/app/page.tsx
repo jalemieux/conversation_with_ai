@@ -29,6 +29,30 @@ export default function Home() {
   const [selectedModels, setSelectedModels] = useState<string[]>(Object.keys(MODEL_CONFIGS))
   const [recent, setRecent] = useState<RecentConversation[]>([])
   const [loading, setLoading] = useState(false)
+  const [availableModels, setAvailableModels] = useState<string[]>(Object.keys(MODEL_CONFIGS))
+
+  useEffect(() => {
+    fetch('/api/user')
+      .then(r => r.json())
+      .then(data => {
+        if (data.subscriptionStatus === 'active') {
+          setAvailableModels(Object.keys(MODEL_CONFIGS))
+          setSelectedModels(Object.keys(MODEL_CONFIGS))
+        } else if (data.providers?.length > 0) {
+          const providerToModels: Record<string, string[]> = {}
+          for (const [key, config] of Object.entries(MODEL_CONFIGS)) {
+            if (!providerToModels[config.provider]) providerToModels[config.provider] = []
+            providerToModels[config.provider].push(key)
+          }
+          const available = data.providers.flatMap((p: string) => providerToModels[p] || [])
+          setAvailableModels(available)
+          setSelectedModels(available)
+        } else {
+          window.location.href = '/setup'
+        }
+      })
+      .catch(() => {})
+  }, [])
 
   useEffect(() => {
     fetch('/api/conversations')
@@ -91,9 +115,12 @@ export default function Home() {
     <div>
       {/* Masthead */}
       <header className="mb-10 animate-fade-up">
-        <div className="flex items-center gap-3 mb-5">
-          <div className="w-10 h-[3px] bg-amber rounded-full" />
-          <span className="text-[11px] font-semibold tracking-[0.2em] uppercase text-amber">Roundtable</span>
+        <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-[3px] bg-amber rounded-full" />
+            <span className="text-[11px] font-semibold tracking-[0.2em] uppercase text-amber">Roundtable</span>
+          </div>
+          <a href="/settings" className="text-sm text-ink-muted hover:text-ink transition-colors">Settings</a>
         </div>
         <h1 className="font-[family-name:var(--font-serif)] text-4xl font-semibold tracking-tight leading-tight text-ink mb-3">
           Conversation With AI
@@ -124,7 +151,7 @@ export default function Home() {
             Panel
           </label>
           <div className="flex gap-2.5 flex-wrap">
-            {Object.entries(MODEL_CONFIGS).map(([key, config]) => {
+            {Object.entries(MODEL_CONFIGS).filter(([key]) => availableModels.includes(key)).map(([key, config]) => {
               const active = selectedModels.includes(key)
               const colors = MODEL_COLORS[key] ?? { dot: 'bg-amber', activeBg: 'bg-amber-faint', activeBorder: 'border-amber/30', activeText: 'text-amber' }
               return (

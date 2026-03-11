@@ -17,7 +17,7 @@ describe('Model Configuration', () => {
 
   it('should return a provider instance for each model', () => {
     for (const key of Object.keys(MODEL_CONFIGS)) {
-      const provider = getModelProvider(key)
+      const provider = getModelProvider(key, 'test-key')
       expect(provider).toBeDefined()
     }
   })
@@ -30,25 +30,25 @@ describe('Model Configuration', () => {
 
 describe('getSearchConfig', () => {
   it('should return search tools for claude', () => {
-    const config = getSearchConfig('claude')
+    const config = getSearchConfig('claude', 'test-key')
     expect(config.tools).toBeDefined()
     expect(config.tools!.web_search).toBeDefined()
   })
 
   it('should return search tools for gpt', () => {
-    const config = getSearchConfig('gpt')
+    const config = getSearchConfig('gpt', 'test-key')
     expect(config.tools).toBeDefined()
     expect(config.tools!.web_search).toBeDefined()
   })
 
   it('should return search tools for gemini', () => {
-    const config = getSearchConfig('gemini')
+    const config = getSearchConfig('gemini', 'test-key')
     expect(config.tools).toBeDefined()
     expect(config.tools!.google_search).toBeDefined()
   })
 
   it('should return search tools for grok', () => {
-    const config = getSearchConfig('grok')
+    const config = getSearchConfig('grok', 'test-key')
     expect(config.tools).toBeDefined()
     expect(config.tools!.web_search).toBeDefined()
   })

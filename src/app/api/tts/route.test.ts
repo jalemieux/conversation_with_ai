@@ -1,6 +1,35 @@
 // @vitest-environment node
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
+// Mock auth-config
+vi.mock('@/lib/auth-config', () => ({
+  auth: vi.fn().mockResolvedValue({ user: { id: 'test-user' } }),
+}))
+
+// Mock db - first call (userApiKeys) returns empty, second call (users) returns active subscriber
+vi.mock('@/db', () => {
+  let callCount = 0
+  const mockWhere = vi.fn().mockImplementation(() => {
+    callCount++
+    if (callCount % 2 === 1) return Promise.resolve([]) // userApiKeys: no BYOK key
+    return Promise.resolve([{ subscriptionStatus: 'active' }]) // users: active subscriber
+  })
+  const mockFrom = vi.fn().mockReturnValue({ where: mockWhere })
+  const mockSelect = vi.fn().mockReturnValue({ from: mockFrom })
+  return { db: { select: mockSelect } }
+})
+
+// Mock encryption
+vi.mock('@/lib/encryption', () => ({
+  decrypt: vi.fn((s: string) => s),
+}))
+
+// Mock db schema
+vi.mock('@/db/schema', () => ({
+  users: {},
+  userApiKeys: {},
+}))
+
 // Mock the tts module
 vi.mock('@/lib/tts', () => ({
   MODEL_VOICES: { claude: 'coral', gpt: 'nova', gemini: 'sage', grok: 'ash' },

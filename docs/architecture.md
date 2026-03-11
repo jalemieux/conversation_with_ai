@@ -58,6 +58,17 @@
 | Login Page | `src/app/login/page.tsx` | Password entry form |
 | Auth API Route | `src/app/api/auth/route.ts` | Password validation endpoint, sets HttpOnly auth cookie |
 | Respond Route | `src/app/api/conversation/respond/route.ts` | Per-model response generation with search/sources support |
+| Auth Config | `src/lib/auth-config.ts` | NextAuth v5 config with Resend magic link, custom Drizzle adapter |
+| Encryption | `src/lib/encryption.ts` | AES-256-GCM encrypt/decrypt for BYOK API keys |
+| Access Check | `src/lib/access.ts` | Determines if user has access (subscription or BYOK keys) |
+| User Access | `src/lib/user-access.ts` | Resolves available models based on user subscription/keys |
+| Stripe Checkout | `src/app/api/stripe/checkout/route.ts` | Creates Stripe Checkout Session for subscription |
+| Stripe Webhook | `src/app/api/stripe/webhook/route.ts` | Handles Stripe subscription lifecycle events |
+| Stripe Portal | `src/app/api/stripe/portal/route.ts` | Creates Stripe Customer Portal session |
+| Key Management | `src/app/api/keys/route.ts` | BYOK API key CRUD (encrypted storage) |
+| User Info | `src/app/api/user/route.ts` | Returns user email, subscription status, configured providers |
+| Setup Page | `src/app/setup/page.tsx` | Access gate — subscribe or add BYOK keys |
+| Settings Page | `src/app/settings/page.tsx` | Account, subscription management, API key config |
 
 ## Augmenter Types
 
@@ -188,6 +199,19 @@ responses
 - Using the same model preserves the voice and personality of the original response
 - Additional LLM call adds latency on first play (mitigated by caching)
 
+### ADR-004: Monetization Architecture
+
+**Decision:** Magic link auth (NextAuth + Resend), $20/mo Stripe subscription, and BYOK (Bring Your Own Keys) with AES-256-GCM encryption.
+
+**Rationale:**
+- Magic links eliminate password management complexity
+- Flat-rate subscription is simplest to implement and reason about
+- BYOK lets power users avoid subscription while covering their own API costs
+- AES-256-GCM is industry-standard authenticated encryption for key storage
+- SQLite stays as the database — no need for Postgres at current scale
+
+**Access model:** Users must have either an active subscription (uses platform API keys) or at least one BYOK key. BYOK keys are resolved first, falling back to platform keys for subscribers.
+
 ## Changelog
 
 - 2026-02-26: Initial implementation — full conversation flow with 4 models, 2 rounds, SSE streaming, export
@@ -201,3 +225,13 @@ responses
 - 2026-02-28: TTS audio caching + inline player — generated audio cached to `data/audio/{conversationId}/{round}-{model}.mp3` (cache-first, no re-generation on replay); new AudioPlayer component with play/pause, skip -10s/+10s, seekable progress bar, time display; SpeakerButton shows green dot when cached; useTTS hook extended with pauseToggle, skipForward, skipBack, seek, and progress tracking
 - 2026-02-28: Read-aloud rewriting — `rewriteForAudio()` calls the original model to rewrite responses for spoken delivery before TTS; rewritten scripts cached as `.script.txt`; graceful fallback to original text on failure; skipped when no conversationId
 - 2026-03-01: Fold system-prompt into orchestrator — merged `system-prompt.ts` into `orchestrator.ts`; system prompt is now always passed (essay mode only controls prose style, not entire system guidance); deleted standalone module
+
+### 2026-03-05 — Monetization: Auth, Stripe, BYOK
+- Added magic link authentication via NextAuth + Resend (replaces password gate)
+- Added $20/mo Stripe subscription with checkout, webhooks, and customer portal
+- Added BYOK (Bring Your Own Keys) with AES-256-GCM encrypted storage
+- Added settings page with subscription management and API key configuration
+- Added setup page as access gate for new users
+- Model selector now filters by user's available providers
+- Conversations are now associated with authenticated users
+- TTS and conversation routes resolve BYOK keys per-user

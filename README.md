@@ -55,6 +55,10 @@ flowchart TD
 5. **Export** — Copy the full discussion as Markdown, plain text, or an X thread
 6. **Text-to-Speech** — Click the speaker icon on any response to hear it read aloud via OpenAI TTS, with a unique voice per model (Claude=coral, GPT=nova, Gemini=sage, Grok=ash). The original model rewrites its response for natural spoken delivery before TTS generation. Audio is cached on disk so replaying never re-generates
 7. **Inline Audio Player** — When audio loads, an inline mini-player appears inside the response card with play/pause, rewind/forward 10s, a seekable progress bar, and time display
+8. **Magic link authentication** — Passwordless login via email (NextAuth + Resend)
+9. **$20/mo subscription via Stripe**, or bring your own API keys (BYOK)
+10. **Encrypted API key storage** — AES-256-GCM for BYOK keys at rest
+11. **Settings page** — Subscription management and API key configuration
 
 ## Key Technical Decisions
 
@@ -120,17 +124,28 @@ src/
 npm install
 ```
 
-Create `.env.local`:
-```
-CWAI_ACCESS_PASSWORD=...     # Shared password to gate access (required in production)
-CWAI_ANTHROPIC_API_KEY=...
-CWAI_OPENAI_API_KEY=...
-CWAI_GOOGLE_API_KEY=...
-CWAI_XAI_API_KEY=...
-```
+Create `.env.local` with the required variables:
+
+### Environment Variables
+
+| Variable | Purpose |
+|----------|---------|
+| `CWAI_ANTHROPIC_API_KEY` | Anthropic API key (platform key) |
+| `CWAI_OPENAI_API_KEY` | OpenAI API key (platform key) |
+| `CWAI_GOOGLE_API_KEY` | Google AI API key (platform key) |
+| `CWAI_XAI_API_KEY` | xAI API key (platform key) |
+| `CWAI_NEXTAUTH_SECRET` | NextAuth JWT signing secret |
+| `CWAI_NEXTAUTH_URL` | App URL for NextAuth callbacks |
+| `CWAI_RESEND_API_KEY` | Resend API key for magic link emails |
+| `CWAI_RESEND_FROM_EMAIL` | Sender email (e.g. login@yourdomain.com) |
+| `CWAI_STRIPE_SECRET_KEY` | Stripe secret key |
+| `CWAI_STRIPE_PUBLISHABLE_KEY` | Stripe publishable key |
+| `CWAI_STRIPE_WEBHOOK_SECRET` | Stripe webhook signing secret |
+| `CWAI_STRIPE_PRICE_ID` | Stripe Price ID for $20/mo plan |
+| `CWAI_ENCRYPTION_KEY` | 64-char hex key for AES-256-GCM encryption |
 
 ```bash
 npm run dev        # http://localhost:3000
 npm test           # watch mode
-npm run test:run   # single run (17 suites, 126 tests)
+npm run test:run   # single run (17 suites, 146 tests)
 ```

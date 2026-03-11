@@ -1,13 +1,15 @@
 import { generateText } from 'ai'
 import { NextResponse } from 'next/server'
 import { db } from '@/db'
-import { conversations, responses } from '@/db/schema'
+import { conversations, responses, userApiKeys, users } from '@/db/schema'
 import { getModelProvider, getSearchConfig, MODEL_CONFIGS, calculateCost } from '@/lib/models'
 import { extractSources } from '@/lib/sources'
 import { buildUserPrompt, buildSystemPrompt } from '@/lib/orchestrator'
 import type { Round1Response } from '@/lib/orchestrator'
 import { eq, and } from 'drizzle-orm'
 import { randomUUID } from 'crypto'
+import { auth } from '@/lib/auth-config'
+import { decrypt } from '@/lib/encryption'
 
 export async function POST(request: Request) {
   const { conversationId, model: modelKey, round, essayMode } = await request.json()
@@ -25,6 +27,25 @@ export async function POST(request: Request) {
   const [conv] = await db.select().from(conversations).where(eq(conversations.id, conversationId))
   if (!conv) {
     return NextResponse.json({ error: 'Conversation not found' }, { status: 404 })
+  }
+
+  // Resolve API key: BYOK first, then platform key for subscribers
+  const session = await auth()
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  let apiKey: string | undefined
+  const [userKey] = await db.select().from(userApiKeys).where(
+    and(eq(userApiKeys.userId, session.user.id), eq(userApiKeys.provider, config.provider))
+  )
+  if (userKey) {
+    apiKey = decrypt(userKey.encryptedKey)
+  } else {
+    const [user] = await db.select().from(users).where(eq(users.id, session.user.id))
+    if (user?.subscriptionStatus !== 'active') {
+      return NextResponse.json({ error: `No API key for ${config.provider}. Subscribe or add your own key.` }, { status: 403 })
+    }
   }
 
   // Validate round
@@ -47,10 +68,10 @@ export async function POST(request: Request) {
   const prompt = buildUserPrompt(conv.augmentedPrompt, config.name, round1Responses)
 
   // Build model options — search only in Round 1
-  const searchConfig = round === 1 ? getSearchConfig(modelKey) : {}
+  const searchConfig = round === 1 ? getSearchConfig(modelKey, apiKey) : {}
 
   const result = await generateText({
-    model: getModelProvider(modelKey),
+    model: getModelProvider(modelKey, apiKey),
     system: buildSystemPrompt(round as 1 | 2, essayMode !== false, config.systemPrompt),
     prompt,
     ...(config.providerOptions && { providerOptions: config.providerOptions }),
