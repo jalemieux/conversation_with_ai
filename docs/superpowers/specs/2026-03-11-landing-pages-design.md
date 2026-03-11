@@ -28,9 +28,39 @@ Both pages are public (no auth required). CTA buttons link to `/login`.
 - **Animations:** Existing `fade-up` stagger. Sections animate in on scroll via intersection observer.
 - **Design system:** Same cream/card/amber palette, Source Serif 4 headings, DM Sans body, existing component patterns (rounded-xl cards, border-border, shadow-subtle).
 
+## SEO & Accessibility
+
+- Each page gets a unique `<title>` and `<meta name="description">` via Next.js `metadata` export.
+- Open Graph tags (`og:title`, `og:description`, `og:type: website`).
+- Semantic HTML: `<main>`, `<section>` per block, single `<h1>` (app title), `<h2>` per section heading.
+- Heading hierarchy: h1 → h2 → h3 only. No skipped levels.
+- CTA buttons use `<a>` with `role="link"` (they navigate to `/login`).
+
+## Shared Constants: Model Colors
+
+Extract model dot/accent colors to `src/lib/model-colors.ts` (shared by landing pages and existing conversation pages). Use the existing theme tokens: `--color-claude`, `--color-gpt`, `--color-gemini`, `--color-grok`.
+
+## Shared Component: ScrollFadeIn
+
+Intersection observer wrapper. Behavior:
+- Trigger when 15% of element is visible (`threshold: 0.15`).
+- Animate once only (no replay on re-entry). Disconnect observer after triggering.
+- Apply existing `fade-up` animation (0.4s ease-out).
+- Accept optional `delay` prop (ms) for staggering children.
+
 ## Shared Component: Example Conversation
 
-A static mocked conversation showing a topic + 2-3 model responses with visible disagreement. Topic should be substantive (market prediction, policy question) to resonate with the target audience. Reused by both pages.
+A static mocked conversation showing a topic + 3 model responses with visible disagreement. Uses model color constants from `src/lib/model-colors.ts`. Reused by both pages.
+
+**Mock data:**
+
+Topic: *"Will the US dollar lose its reserve currency status within 20 years?"*
+
+- **Claude:** Argues structural persistence — network effects, debt denomination, lack of viable alternative. Concludes unlikely within 20 years but gradual erosion is plausible.
+- **GPT:** Takes a broader view — historical precedent of reserve currency transitions (sterling → dollar). Notes BRICS de-dollarization efforts but concludes the timeline is 30-50 years, not 20.
+- **Grok:** Disagrees — points to accelerating trends (digital yuan, commodity repricing, US fiscal trajectory) and argues markets price these shifts faster than academics expect. "The consensus timeline is the consensus because it's comfortable, not because it's right."
+
+This shows substantive disagreement on timeline and mechanism, not just tone.
 
 ---
 
@@ -42,17 +72,16 @@ Minimal copy, generous whitespace. Each section is one sentence + a visual. Feel
 
 #### 1. Hero
 - App title in Source Serif
-- One sentence (the value prop, not a tagline)
+- Copy: "Structured analysis from the frontier models. Frame the question, compare the answers, surface what one model misses."
 - `[ Sign in ]` amber button
 
 #### 2. How It Works
 - Three-step horizontal grid (stacks vertical on mobile)
-- `1. Ask` → `2. Frame` → `3. Compare`
-- One sentence under each step
+- `1. Ask` — "Pose a question on any topic." → `2. Frame` — "AI refines your prompt for depth and precision." → `3. Compare` — "Multiple models respond. Then they respond to each other."
 
 #### 3. Models
 - Four models with colored dots: Claude, GPT, Gemini, Grok
-- One sentence about breadth of perspective
+- Copy: "Four reasoning styles. Each sees what the others don't."
 
 #### 4. Example
 - Static mocked conversation card
@@ -60,14 +89,22 @@ Minimal copy, generous whitespace. Each section is one sentence + a visual. Feel
 
 #### 5. Features
 - 3x2 grid of short feature cards (2-col on mobile)
-- Prompt framing, Multi-round, Text-to-speech, Export, BYOK, History
+- Each card: icon-free, bold label + one sentence
+  - **Prompt framing** — "AI analyzes your input and suggests the sharpest angle."
+  - **Multi-round debate** — "Models read each other's responses and push back."
+  - **Text-to-speech** — "Listen to any response. Each model has a distinct voice."
+  - **Export** — "Download the full discussion as Markdown, text, or X thread."
+  - **Bring your own keys** — "Use your API keys instead of subscribing."
+  - **History** — "Every conversation saved and searchable."
 
 #### 6. Pricing
 - Two cards side-by-side (stack on mobile)
-- `$20/mo — all models` and `BYOK — free, bring your keys`
+- Card 1: "$20 / month" — "All four models. Unlimited conversations. No API keys needed."
+- Card 2: "Bring your own keys" — "Free. Use your own API keys. Same features."
+- Both tiers get all features (TTS, export, history, multi-round).
 
 #### 7. Footer CTA
-- One sentence
+- Copy: "One question. Four perspectives."
 - `[ Sign in ]` amber button
 
 ---
@@ -80,12 +117,12 @@ Text-forward. Each section builds on the previous like paragraphs in an essay. R
 
 #### 1. Hero (The Problem)
 - App title in Source Serif
-- 2-3 sentences: the problem with asking one model. Blind spots. Framing effects.
+- Copy: "Every model has blind spots. Ask Claude a policy question and it hedges. Ask GPT and it synthesizes toward consensus. Ask Grok and it provokes. None of them is wrong — but none of them is complete. This tool lets you hear from all of them, in a structured format designed to surface the differences."
 - `[ Sign in ]` amber button
 
 #### 2. The Mechanism
 - Short paragraph (prose, not numbered grid)
-- Why framing matters. Why multiple models. Why structured rounds.
+- Copy: "You start with a question. Before it reaches any model, AI analyzes your input and suggests framings — prediction, comparison, trend analysis — that draw out more substantive responses. Then multiple models answer in parallel. In a second round, each model reads the others and responds: agreements, objections, refinements. The result is a structured discussion, not a monologue."
 
 #### 3. The Models
 - Four models with colored dots
@@ -101,14 +138,13 @@ Text-forward. Each section builds on the previous like paragraphs in an essay. R
 
 #### 5. What You Get (Features)
 - Vertical list (not grid)
-- Each feature: bold label + one explanatory sentence
-- Reads like a bulleted brief
+- Each feature: bold label + one explanatory sentence. Same six features as Landing A, same copy, but rendered as a vertical list instead of a grid.
 
 #### 6. Pricing
 - Same two-card layout as A
 
 #### 7. Footer CTA
-- Closing sentence that ties back to the opening thesis
+- Copy: "The best answer is rarely the first one you hear."
 - `[ Sign in ]` amber button
 
 ---
@@ -122,7 +158,8 @@ Text-forward. Each section builds on the previous like paragraphs in an essay. R
 | `src/components/ExampleConversation.tsx` | Shared mocked conversation |
 | `src/components/LandingPricing.tsx` | Shared pricing cards |
 | `src/components/ScrollFadeIn.tsx` | Intersection observer wrapper for scroll animations |
+| `src/lib/model-colors.ts` | Shared model dot/accent color constants |
 
 ## Files to Modify
 
-None. Current home page and routing stay untouched.
+None. Current home page and routing stay untouched. (Existing pages can optionally import from `model-colors.ts` later to reduce duplication, but that's not in scope.)
