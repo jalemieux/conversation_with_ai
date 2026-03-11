@@ -52,8 +52,8 @@ export const MODEL_CONFIGS: Record<string, ModelConfig> = {
     id: 'gpt',
     name: 'GPT',
     provider: 'openai',
-    modelId: 'gpt-5.1',
-    pricing: { inputPerMTok: 1.25, outputPerMTok: 10 },
+    modelId: 'gpt-5.4',
+    pricing: { inputPerMTok: 2.50, outputPerMTok: 15 },
     providerOptions: {
       openai: {
         reasoningEffort: 'medium',
