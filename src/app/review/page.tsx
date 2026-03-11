@@ -105,24 +105,24 @@ function ReviewContent() {
         />
       </div>
 
-      <div className="animate-fade-up stagger-2 mb-2">
-        <p className="text-xs font-medium tracking-widest uppercase text-ink-faint mb-2">Topic Type</p>
-        <div className="flex gap-2 flex-wrap mb-2">
+      <div className="animate-fade-up stagger-2 mb-4">
+        <p className="text-xs font-medium tracking-widest uppercase text-ink-faint mb-3">Topic Type</p>
+        <div className="flex gap-3 flex-wrap mb-3">
           {TOPIC_TYPES.map((type) => (
             <button
               key={type}
               onClick={() => handleTagClick(type)}
-              className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all duration-200 cursor-pointer ${
+              className={`px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 cursor-pointer ${
                 type === selectedType
-                  ? 'bg-amber-faint text-amber ring-1 ring-amber/30'
-                  : 'bg-card text-ink-muted ring-1 ring-border hover:ring-border-strong hover:text-ink'
+                  ? 'bg-amber-faint text-amber ring-2 ring-amber/40 shadow-sm'
+                  : 'bg-card text-ink-muted ring-1 ring-border hover:ring-amber/30 hover:text-ink hover:shadow-sm'
               }`}
             >
               {type}
             </button>
           ))}
         </div>
-        <p className="text-xs text-ink-muted mt-1.5">
+        <p className="text-sm text-ink-muted mt-2">
           <span className="font-medium text-ink-faint">{currentFramework}</span> — {TOPIC_DESCRIPTIONS[selectedType]}
         </p>
       </div>
@@ -148,7 +148,7 @@ function ReviewContent() {
           />
         </button>
         <p className="text-xs text-ink-muted mt-0.5">
-          Shapes responses into flowing, essay-style prose — the kind you'd find in The Economist or The Atlantic. Without it, models answer in their default style.
+          Shapes responses into flowing, essay-style prose.
         </p>
       </div>
 
