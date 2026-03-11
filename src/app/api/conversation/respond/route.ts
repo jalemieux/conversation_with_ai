@@ -79,8 +79,9 @@ export async function POST(request: Request) {
   // Build model options — search only in Round 1
   const searchConfig = round === 1 ? getSearchConfig(modelKey, apiKey) : {}
 
-  try {
-    const result = await generateText({
+  const MAX_RETRIES = 2
+  const callModel = async () => {
+    return generateText({
       model: getModelProvider(modelKey, apiKey),
       system: buildSystemPrompt(round as 1 | 2, essayMode !== false, config.systemPrompt),
       prompt,
@@ -88,8 +89,27 @@ export async function POST(request: Request) {
       ...(searchConfig.providerOptions && {
         providerOptions: { ...config.providerOptions, ...searchConfig.providerOptions },
       }),
-      ...(searchConfig.tools && { tools: searchConfig.tools, stopWhen: stepCountIs(3) }),
+      ...(searchConfig.tools && { tools: searchConfig.tools, stopWhen: stepCountIs(5) }),
     })
+  }
+
+  try {
+    let result
+    let lastError: unknown
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        result = await callModel()
+        break
+      } catch (err) {
+        lastError = err
+        const msg = err instanceof Error ? err.message : String(err)
+        console.warn(`[respond] ATTEMPT ${attempt + 1}/${MAX_RETRIES + 1} FAILED model=${modelKey}: ${msg}`)
+        if (attempt < MAX_RETRIES) {
+          await new Promise((r) => setTimeout(r, 1000 * (attempt + 1)))
+        }
+      }
+    }
+    if (!result) throw lastError
 
     // Log step details for debugging
     const steps = result.steps ?? []

@@ -229,11 +229,29 @@ function ConversationContent() {
     </div>
   )
 
+  const retryModel = (modelKey: string, round: number) => {
+    const setStates = round === 1 ? setRound1States : setRound2States
+    setStates((prev) => ({ ...prev, [modelKey]: { loading: true, error: null, response: null } }))
+    callModel(conversationId!, modelKey, round)
+      .then((response) => {
+        setStates((prev) => ({ ...prev, [modelKey]: { loading: false, error: null, response } }))
+      })
+      .catch((err) => {
+        setStates((prev) => ({ ...prev, [modelKey]: { loading: false, error: err.message, response: null } }))
+      })
+  }
+
   const ErrorCard = ({ modelKey, message, round }: { modelKey: string; message: string; round: number }) => (
     <div className="bg-danger/5 border border-danger/20 rounded-xl overflow-hidden animate-fade-up px-5 py-4 flex items-center gap-3">
       <span className={`w-2 h-2 rounded-full flex-shrink-0 ${getDot(modelKey, round)}`} />
       <span className={`font-medium ${getAccent(modelKey, round)}`}>{modelKey}</span>
       <span className="text-danger text-sm ml-2">{message}</span>
+      <button
+        onClick={() => retryModel(modelKey, round)}
+        className="ml-auto px-3 py-1 text-xs font-medium bg-card border border-border hover:border-border-strong rounded-lg transition-colors cursor-pointer text-ink-muted hover:text-ink"
+      >
+        Retry
+      </button>
     </div>
   )
 
