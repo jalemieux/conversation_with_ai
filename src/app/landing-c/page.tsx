@@ -19,7 +19,7 @@ export const metadata: Metadata = {
 const MODELS = [
   { key: 'claude', name: 'Claude', modelId: 'claude-opus-4-6', provider: 'Anthropic', capability: 'Extended thinking', note: 'Careful, nuanced reasoning with deep structural analysis' },
   { key: 'gpt', name: 'GPT', modelId: 'gpt-5.4', provider: 'OpenAI', capability: 'Reasoning (medium)', note: 'Methodologically rigorous with broad synthesis' },
-  { key: 'gemini', name: 'Gemini', modelId: 'gemini-3.1-pro-preview', provider: 'Google', capability: 'Thinking mode', note: 'Analytical and grounded with search integration' },
+  { key: 'gemini', name: 'Gemini', modelId: 'gemini-2.5-pro', provider: 'Google', capability: 'Thinking mode', note: 'Analytical and grounded with search integration' },
   { key: 'grok', name: 'Grok', modelId: 'grok-4-1-fast-reasoning', provider: 'xAI', capability: 'Fast reasoning', note: 'Direct, contrarian, leverages real-time data' },
 ]
 

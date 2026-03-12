@@ -74,8 +74,8 @@ Conclude with a balanced synthesis that clarifies what is most defensible given 
     id: 'gemini',
     name: 'Gemini',
     provider: 'google',
-    modelId: 'gemini-3.1-pro-preview',
-    pricing: { inputPerMTok: 2, outputPerMTok: 12 },
+    modelId: 'gemini-2.5-pro',
+    pricing: { inputPerMTok: 1.25, outputPerMTok: 10 },
     providerOptions: {
       google: {
         thinkingConfig: { thinkingBudget: 5000 },
