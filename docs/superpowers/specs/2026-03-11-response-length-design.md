@@ -9,7 +9,7 @@ Add a user-facing control on the review page that lets users choose how long the
 | Preset | Round 1 Range | Round 2 Range | Description |
 |--------|--------------|--------------|-------------|
 | Brief | 200–400 words | 100–200 words | Quick takes |
-| Standard | 600–800 words | 300–500 words | Current default behavior |
+| Standard | 600–800 words | 300–500 words | Moderate depth (note: today no word guidance is sent; this adds it) |
 | Detailed | 1000–1500 words | 500–800 words | Deep dives |
 
 ## UI
@@ -31,7 +31,8 @@ A row of three toggle buttons on the review page (`src/app/review/page.tsx`), pl
 - Add a lookup mapping each preset + round to a word-range string
 - Update `buildSystemPrompt()` signature to accept `responseLength?: ResponseLength`
 - Append the word-range instruction to the system prompt parts
-- Remove the commented-out `ROUND_1_ADDITIONS` constant
+- When `responseLength` is `undefined`, no word-range instruction is appended (preserves current behavior for any callers that omit it)
+- Remove the commented-out `ROUND_1_ADDITIONS`, the unused `ROUND_2_ADDITIONS` constant, and the commented-out `parts.push` line — the new preset lookup replaces all of this
 
 ### `src/app/review/page.tsx`
 - Add `responseLength` state (default `'standard'`)
@@ -45,6 +46,7 @@ A row of three toggle buttons on the review page (`src/app/review/page.tsx`), pl
 ### `src/app/conversation/page.tsx`
 - Read `responseLength` from URL params
 - Include it in each `/api/conversation/respond` POST body
+- Add `responseLength` to `callModel`'s `useCallback` dependency array
 
 ## What This Does Not Change
 
