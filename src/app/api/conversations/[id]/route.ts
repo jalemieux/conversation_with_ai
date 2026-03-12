@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { db } from '@/db'
 import { conversations, responses } from '@/db/schema'
 import { eq } from 'drizzle-orm'
+import { auth } from '@/lib/auth-config'
 
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -11,11 +12,15 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: 'Not found' }, { status: 404 })
   }
 
+  const session = await auth()
+  const isOwner = session?.user?.id === conv[0].userId
+
   const resps = await db.select().from(responses).where(eq(responses.conversationId, id))
 
   return NextResponse.json({
     ...conv[0],
     models: JSON.parse(conv[0].models),
+    isOwner,
     responses: resps.map(({ inputTokens, outputTokens, cost, sources, ...rest }) => ({
       ...rest,
       sources: sources ? JSON.parse(sources) : undefined,
@@ -31,9 +36,18 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
 export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
 
+  const session = await auth()
+  if (!session?.user?.id) {
+    return new Response(null, { status: 401 })
+  }
+
   const conv = await db.select().from(conversations).where(eq(conversations.id, id))
   if (conv.length === 0) {
     return new Response(null, { status: 404 })
+  }
+
+  if (conv[0].userId !== session.user.id) {
+    return new Response(null, { status: 403 })
   }
 
   await db.delete(responses).where(eq(responses.conversationId, id))

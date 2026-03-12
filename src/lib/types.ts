@@ -27,4 +27,5 @@ export interface Conversation {
   framework: string
   models: string[]
   responses: ConversationResponse[]
+  isOwner?: boolean
 }

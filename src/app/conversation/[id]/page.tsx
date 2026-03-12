@@ -64,6 +64,7 @@ export default function ConversationDetailPage() {
     )
   }
 
+  const isOwner = conversation.isOwner ?? false
   const round1 = conversation.responses.filter((r) => r.round === 1)
   const round2 = conversation.responses.filter((r) => r.round === 2)
 
@@ -129,10 +130,12 @@ export default function ConversationDetailPage() {
                     )}
                     <span className="ml-auto flex items-center">
                       <CopyButton content={r.content} />
-                      <SpeakerButton
-                        state={getSpeakerState(`${r.round}-${r.model}`)}
-                        onClick={() => tts.toggle(`${r.round}-${r.model}`, r.content, r.model, conversation.id, r.round)}
-                      />
+                      {isOwner && (
+                        <SpeakerButton
+                          state={getSpeakerState(`${r.round}-${r.model}`)}
+                          onClick={() => tts.toggle(`${r.round}-${r.model}`, r.content, r.model, conversation.id, r.round)}
+                        />
+                      )}
                     </span>
                   </summary>
                   <div className="px-5 pb-5 border-t border-border pt-4">
@@ -189,10 +192,12 @@ export default function ConversationDetailPage() {
                     )}
                     <span className="ml-auto flex items-center">
                       <CopyButton content={r.content} />
-                      <SpeakerButton
-                        state={getSpeakerState(`${r.round}-${r.model}`)}
-                        onClick={() => tts.toggle(`${r.round}-${r.model}`, r.content, r.model, conversation.id, r.round)}
-                      />
+                      {isOwner && (
+                        <SpeakerButton
+                          state={getSpeakerState(`${r.round}-${r.model}`)}
+                          onClick={() => tts.toggle(`${r.round}-${r.model}`, r.content, r.model, conversation.id, r.round)}
+                        />
+                      )}
                     </span>
                   </summary>
                   <div className="px-5 pb-5 border-t border-border pt-4">
@@ -224,7 +229,7 @@ export default function ConversationDetailPage() {
         </button>
       </div>
 
-      {activeKey && (
+      {isOwner && activeKey && (
         <AudioPlayer
           isPlaying={!!tts.playingKey}
           currentTime={tts.currentTime}
@@ -236,6 +241,20 @@ export default function ConversationDetailPage() {
           onSeek={tts.seek}
           onStop={tts.stop}
         />
+      )}
+
+      {!isOwner && (
+        <div className="mt-12 mb-4 border border-border rounded-xl bg-card p-6 text-center animate-fade-up">
+          <p className="text-ink leading-relaxed mb-4">
+            Explore complex questions from different angles. AI helps you frame the right question, then every frontier model responds and they critique each other&apos;s answers.
+          </p>
+          <a
+            href="/login"
+            className="inline-block px-6 py-2.5 bg-amber text-cream font-medium rounded-xl hover:brightness-110 transition-all duration-200 text-sm"
+          >
+            Get started
+          </a>
+        </div>
       )}
     </div>
   )
