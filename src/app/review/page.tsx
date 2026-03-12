@@ -150,8 +150,9 @@ function ReviewContent() {
         />
       </div>
 
+      {/* Critical inputs */}
       <div className="animate-fade-up stagger-2 mb-4">
-        <p className="text-xs font-medium tracking-widest uppercase text-ink-faint mb-3">Topic Type</p>
+        <p className="text-xs font-medium tracking-widest uppercase text-ink-faint mb-3">Framing</p>
         <div className="flex gap-3 flex-wrap mb-3">
           {TOPIC_TYPES.map((type) => (
             <button
@@ -172,65 +173,24 @@ function ReviewContent() {
         </p>
       </div>
 
-      <div className="animate-fade-up stagger-3 mb-6 flex items-center gap-3">
-        <label htmlFor="essay-mode" className="text-xs font-medium tracking-widest uppercase text-ink-faint cursor-pointer">
-          Essay Mode
-        </label>
-        <button
-          id="essay-mode"
-          role="checkbox"
-          aria-checked={essayMode}
-          aria-label="Essay mode"
-          onClick={() => setEssayMode(!essayMode)}
-          className={`relative w-9 h-5 rounded-full transition-colors duration-200 ${
-            essayMode ? 'bg-amber' : 'bg-border-strong'
-          }`}
-        >
-          <span
-            className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow-sm transition-transform duration-200 ${
-              essayMode ? 'translate-x-4' : 'translate-x-0'
-            }`}
-          />
-        </button>
-        <p className="text-xs text-ink-muted mt-0.5">
-          Shapes responses into flowing, essay-style prose.
-        </p>
-      </div>
-
-      <div className="animate-fade-up stagger-4 mb-6">
-        <p className="text-xs font-medium tracking-widest uppercase text-ink-faint mb-3">Response Length</p>
-        <div className="flex gap-3 flex-wrap">
-          {RESPONSE_LENGTHS.map(({ value, label, description }) => (
-            <button
-              key={value}
-              onClick={() => setResponseLength(value)}
-              className={`px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 cursor-pointer ${
-                value === responseLength
-                  ? 'bg-amber-faint text-amber ring-2 ring-amber/40 shadow-sm'
-                  : 'bg-card text-ink-muted ring-1 ring-border hover:ring-amber/30 hover:text-ink hover:shadow-sm'
-              }`}
-              title={description}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="animate-fade-up stagger-5 mb-6">
+      <div className="animate-fade-up stagger-3 mb-6">
         <p className="text-xs font-medium tracking-widest uppercase text-ink-faint mb-3">Panel</p>
         <div className="flex gap-2.5 flex-wrap">
-          {Object.entries(MODEL_CONFIGS).filter(([key]) => availableModels.includes(key)).map(([key, config]) => {
-            const active = selectedModels.includes(key)
+          {Object.entries(MODEL_CONFIGS).map(([key, config]) => {
+            const available = availableModels.includes(key)
+            const active = available && selectedModels.includes(key)
             const colors = MODEL_COLORS[key] ?? { dot: 'bg-amber', activeBg: 'bg-amber-faint', activeBorder: 'border-amber/30', activeText: 'text-amber' }
             return (
               <button
                 key={key}
-                onClick={() => toggleModel(key)}
-                className={`inline-flex items-center gap-2.5 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 border cursor-pointer ${
-                  active
-                    ? `${colors.activeBg} ${colors.activeBorder} ${colors.activeText}`
-                    : 'bg-cream-dark/40 border-border text-ink-faint hover:text-ink-muted hover:border-border-strong'
+                onClick={() => available && toggleModel(key)}
+                disabled={!available}
+                className={`inline-flex items-center gap-2.5 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 border ${
+                  !available
+                    ? 'bg-cream-dark/20 border-border/50 text-ink-faint/40 cursor-not-allowed opacity-50'
+                    : active
+                      ? `${colors.activeBg} ${colors.activeBorder} ${colors.activeText} cursor-pointer`
+                      : 'bg-cream-dark/40 border-border text-ink-faint hover:text-ink-muted hover:border-border-strong cursor-pointer'
                 }`}
               >
                 <span className={`w-2.5 h-2.5 rounded-full transition-all duration-200 ${colors.dot} ${active ? 'opacity-100' : 'opacity-20'}`} />
@@ -244,7 +204,8 @@ function ReviewContent() {
         </div>
       </div>
 
-      <div className="animate-fade-up stagger-6 mb-8">
+      {/* Key output */}
+      <div className="animate-fade-up stagger-4 mb-8">
         <p className="text-xs font-medium tracking-widest uppercase text-ink-faint mb-2">Augmented Prompt</p>
         <textarea
           value={augmentedPrompt}
@@ -253,7 +214,51 @@ function ReviewContent() {
         />
       </div>
 
-      <div className="animate-fade-up stagger-7 flex gap-3">
+      {/* Configuration */}
+      <div className="animate-fade-up stagger-5 mb-8 flex flex-wrap items-start gap-x-10 gap-y-4">
+        <div className="flex items-center gap-3">
+          <label htmlFor="essay-mode" className="text-xs font-medium tracking-widest uppercase text-ink-faint cursor-pointer">
+            Essay Mode
+          </label>
+          <button
+            id="essay-mode"
+            role="checkbox"
+            aria-checked={essayMode}
+            aria-label="Essay mode"
+            onClick={() => setEssayMode(!essayMode)}
+            className={`relative w-9 h-5 rounded-full transition-colors duration-200 ${
+              essayMode ? 'bg-amber' : 'bg-border-strong'
+            }`}
+          >
+            <span
+              className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow-sm transition-transform duration-200 ${
+                essayMode ? 'translate-x-4' : 'translate-x-0'
+              }`}
+            />
+          </button>
+        </div>
+        <div className="flex items-center gap-3">
+          <p className="text-xs font-medium tracking-widest uppercase text-ink-faint">Length</p>
+          <div className="flex gap-2">
+            {RESPONSE_LENGTHS.map(({ value, label, description }) => (
+              <button
+                key={value}
+                onClick={() => setResponseLength(value)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 cursor-pointer ${
+                  value === responseLength
+                    ? 'bg-amber-faint text-amber ring-1 ring-amber/40'
+                    : 'bg-card text-ink-muted ring-1 ring-border hover:ring-amber/30 hover:text-ink'
+                }`}
+                title={description}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="animate-fade-up stagger-6 flex gap-3">
         <button
           onClick={() => window.history.back()}
           className="px-5 py-3 bg-card border border-border hover:border-border-strong rounded-xl font-medium transition-all duration-200 text-ink-muted hover:text-ink"
