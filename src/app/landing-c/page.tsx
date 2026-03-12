@@ -33,7 +33,7 @@ export default function LandingC() {
             Conversation With AI
           </h1>
           <p className="text-ink-light text-[18px] leading-relaxed max-w-lg mx-auto mb-4">
-            Research any topic in depth. AI helps you frame the right question, then every frontier model responds and they critique each other's answers.
+            Explore complex questions from different angles. AI helps you frame the right question, then every frontier model responds and they critique each other's answers.
           </p>
           <p className="text-ink-muted text-[16px] leading-relaxed max-w-md mx-auto mb-8">
             Read or listen. Bring your own API keys for free, or pay a flat fee and skip the setup.
@@ -42,8 +42,14 @@ export default function LandingC() {
             href="/login"
             className="inline-block px-8 py-3.5 bg-amber text-white rounded-lg font-semibold text-sm tracking-wide transition-all duration-200 hover:bg-amber-light shadow-[0_2px_10px_rgba(122,154,130,0.25)] hover:shadow-[0_4px_16px_rgba(122,154,130,0.3)]"
           >
-            Sign in
+            Sign up
           </Link>
+          <p className="mt-3 text-ink-muted text-sm">
+            Already have an account?{' '}
+            <Link href="/login" className="underline hover:text-ink transition-colors">
+              Sign in
+            </Link>
+          </p>
         </ScrollFadeIn>
       </section>
 
@@ -103,7 +109,7 @@ export default function LandingC() {
                 href="/login"
                 className="block w-full py-3 bg-amber text-white rounded-lg font-semibold text-sm tracking-wide text-center transition-all duration-200 hover:bg-amber-light shadow-[0_2px_10px_rgba(122,154,130,0.25)] hover:shadow-[0_4px_16px_rgba(122,154,130,0.3)]"
               >
-                Sign in
+                Sign up
               </Link>
             </div>
 
@@ -119,7 +125,7 @@ export default function LandingC() {
                 href="/login"
                 className="block w-full py-3 bg-card border border-border text-ink rounded-lg font-semibold text-sm tracking-wide text-center transition-all duration-200 hover:border-border-strong"
               >
-                Sign in
+                Sign up
               </Link>
             </div>
           </div>
@@ -136,10 +142,18 @@ export default function LandingC() {
             href="/login"
             className="inline-block px-8 py-3.5 bg-amber text-white rounded-lg font-semibold text-sm tracking-wide transition-all duration-200 hover:bg-amber-light shadow-[0_2px_10px_rgba(122,154,130,0.25)] hover:shadow-[0_4px_16px_rgba(122,154,130,0.3)]"
           >
-            Sign in
+            Sign up
           </Link>
         </ScrollFadeIn>
       </section>
+
+      {/* ── Copyright ── */}
+      <footer className="pb-8 text-center text-ink-muted text-sm">
+        © {new Date().getFullYear()}{' '}
+        <a href="https://smartlayer.ventures" className="underline hover:text-ink transition-colors">
+          SmartLayer Ventures
+        </a>
+      </footer>
     </>
   )
 }
