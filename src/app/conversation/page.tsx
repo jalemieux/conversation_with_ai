@@ -64,19 +64,20 @@ function ConversationContent() {
 
   const models = (searchParams.get('models') ?? '').split(',').filter(Boolean)
   const essayMode = searchParams.get('essayMode') === 'true'
+  const responseLength = searchParams.get('responseLength') ?? undefined
 
   const callModel = useCallback(async (convId: string, modelKey: string, round: number): Promise<ModelResponse> => {
     const res = await fetch('/api/conversation/respond', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ conversationId: convId, model: modelKey, round, essayMode }),
+      body: JSON.stringify({ conversationId: convId, model: modelKey, round, essayMode, responseLength }),
     })
     if (!res.ok) {
       const err = await res.json()
       throw new Error(err.error ?? 'Request failed')
     }
     return res.json()
-  }, [essayMode])
+  }, [essayMode, responseLength])
 
   useEffect(() => {
     if (startedRef.current) return

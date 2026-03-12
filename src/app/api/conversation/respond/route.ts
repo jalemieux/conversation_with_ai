@@ -12,7 +12,7 @@ import { auth } from '@/lib/auth-config'
 import { decrypt } from '@/lib/encryption'
 
 export async function POST(request: Request) {
-  const { conversationId, model: modelKey, round, essayMode } = await request.json()
+  const { conversationId, model: modelKey, round, essayMode, responseLength } = await request.json()
 
   console.log(`[respond] START model=${modelKey} round=${round} conversationId=${conversationId}`)
 
@@ -83,7 +83,7 @@ export async function POST(request: Request) {
   const callModel = async () => {
     return generateText({
       model: getModelProvider(modelKey, apiKey),
-      system: buildSystemPrompt(round as 1 | 2, essayMode !== false, config.systemPrompt),
+      system: buildSystemPrompt(round as 1 | 2, essayMode !== false, config.systemPrompt, responseLength),
       prompt,
       ...(config.providerOptions && { providerOptions: config.providerOptions }),
       ...(searchConfig.providerOptions && {

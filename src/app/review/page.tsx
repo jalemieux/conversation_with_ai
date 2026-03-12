@@ -3,6 +3,13 @@
 import { Suspense, useState, useMemo } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { TOPIC_TYPES, type TopicType, type AugmentationsMap } from '@/lib/augmenter'
+import type { ResponseLength } from '@/lib/orchestrator'
+
+const RESPONSE_LENGTHS: { value: ResponseLength; label: string; description: string }[] = [
+  { value: 'brief', label: 'Brief', description: 'Quick takes' },
+  { value: 'standard', label: 'Standard', description: 'Moderate depth' },
+  { value: 'detailed', label: 'Detailed', description: 'Deep dives' },
+]
 
 const TOPIC_DESCRIPTIONS: Record<TopicType, string> = {
   prediction: 'Explores possible futures through scenario analysis and cascading effects',
@@ -35,6 +42,7 @@ function ReviewContent() {
   const [isEdited, setIsEdited] = useState(false)
   const [regenerating, setRegenerating] = useState(false)
   const [essayMode, setEssayMode] = useState(false)
+  const [responseLength, setResponseLength] = useState<ResponseLength>('standard')
   const [currentAugmentations, setCurrentAugmentations] = useState(augmentations)
 
   const currentFramework = currentAugmentations[selectedType]?.framework ?? ''
@@ -80,6 +88,7 @@ function ReviewContent() {
       framework: currentFramework,
       models,
       essayMode: String(essayMode),
+      responseLength,
     })
     window.location.href = `/conversation?${params.toString()}`
   }
@@ -152,7 +161,27 @@ function ReviewContent() {
         </p>
       </div>
 
-      <div className="animate-fade-up stagger-4 mb-8">
+      <div className="animate-fade-up stagger-4 mb-6">
+        <p className="text-xs font-medium tracking-widest uppercase text-ink-faint mb-3">Response Length</p>
+        <div className="flex gap-3 flex-wrap">
+          {RESPONSE_LENGTHS.map(({ value, label, description }) => (
+            <button
+              key={value}
+              onClick={() => setResponseLength(value)}
+              className={`px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 cursor-pointer ${
+                value === responseLength
+                  ? 'bg-amber-faint text-amber ring-2 ring-amber/40 shadow-sm'
+                  : 'bg-card text-ink-muted ring-1 ring-border hover:ring-amber/30 hover:text-ink hover:shadow-sm'
+              }`}
+              title={description}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="animate-fade-up stagger-5 mb-8">
         <p className="text-xs font-medium tracking-widest uppercase text-ink-faint mb-2">Augmented Prompt</p>
         <textarea
           value={augmentedPrompt}
@@ -161,7 +190,7 @@ function ReviewContent() {
         />
       </div>
 
-      <div className="animate-fade-up stagger-5 flex gap-3">
+      <div className="animate-fade-up stagger-6 flex gap-3">
         <button
           onClick={() => window.history.back()}
           className="px-5 py-3 bg-card border border-border hover:border-border-strong rounded-xl font-medium transition-all duration-200 text-ink-muted hover:text-ink"
