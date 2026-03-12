@@ -8,7 +8,7 @@ import { useTTS } from '@/hooks/useTTS'
 import { SpeakerButton } from '@/components/SpeakerButton'
 import { AudioPlayer } from '@/components/AudioPlayer'
 import { CopyButton } from '@/components/CopyButton'
-import { exportMarkdown, exportText } from '@/lib/export'
+import { ShareButton } from '@/components/ShareButton'
 import type { Conversation } from '@/lib/types'
 
 const MODEL_ACCENT: Record<string, string> = {
@@ -85,10 +85,13 @@ export default function ConversationDetailPage() {
 
   return (
     <div>
-      <a href="/" className="text-ink-faint hover:text-amber text-sm mb-6 inline-flex items-center gap-1.5 transition-colors">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="opacity-60"><path d="M10 12L6 8L10 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-        New Conversation
-      </a>
+      <div className="flex items-center justify-between mb-6">
+        <a href="/" className="text-ink-faint hover:text-amber text-sm inline-flex items-center gap-1.5 transition-colors">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="opacity-60"><path d="M10 12L6 8L10 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+          New Conversation
+        </a>
+        <ShareButton url={`${typeof window !== 'undefined' ? window.location.origin : ''}/conversation/${conversation.id}`} />
+      </div>
 
       <div className="mb-10 animate-fade-up">
         <p className="text-xs font-medium tracking-widest uppercase text-ink-faint mb-2">Topic</p>
@@ -210,23 +213,8 @@ export default function ConversationDetailPage() {
         </div>
       )}
 
-      <div className="flex flex-wrap gap-2 mt-8 animate-fade-up stagger-4">
-        <button
-          onClick={() => {
-            navigator.clipboard.writeText(exportMarkdown(conversation))
-          }}
-          className="px-5 py-2.5 bg-card border border-border hover:border-border-strong rounded-xl font-medium transition-all duration-200 text-sm text-ink-muted hover:text-ink"
-        >
-          Copy Markdown
-        </button>
-        <button
-          onClick={() => {
-            navigator.clipboard.writeText(exportText(conversation))
-          }}
-          className="px-5 py-2.5 bg-card border border-border hover:border-border-strong rounded-xl font-medium transition-all duration-200 text-sm text-ink-muted hover:text-ink"
-        >
-          Copy Text
-        </button>
+      <div className="mt-8 animate-fade-up stagger-4 flex justify-end">
+        <ShareButton url={`${typeof window !== 'undefined' ? window.location.origin : ''}/conversation/${conversation.id}`} />
       </div>
 
       {isOwner && activeKey && (

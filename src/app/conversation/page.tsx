@@ -7,6 +7,7 @@ import { useTTS } from '@/hooks/useTTS'
 import { SpeakerButton } from '@/components/SpeakerButton'
 import { AudioPlayer } from '@/components/AudioPlayer'
 import { CopyButton } from '@/components/CopyButton'
+import { ShareButton } from '@/components/ShareButton'
 
 interface ModelResponse {
   round: number
@@ -276,10 +277,13 @@ function ConversationContent() {
 
   return (
     <div>
-      <a href="/" className="text-ink-faint hover:text-amber text-sm mb-6 inline-flex items-center gap-1.5 transition-colors">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="opacity-60"><path d="M10 12L6 8L10 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-        New Conversation
-      </a>
+      <div className="flex items-center justify-between mb-6">
+        <a href="/" className="text-ink-faint hover:text-amber text-sm inline-flex items-center gap-1.5 transition-colors">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="opacity-60"><path d="M10 12L6 8L10 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+          New Conversation
+        </a>
+        {conversationId && <ShareButton url={`${window.location.origin}/conversation/${conversationId}`} />}
+      </div>
 
       {topic && (
         <div className="mb-10 animate-fade-up">
@@ -342,7 +346,7 @@ function ConversationContent() {
       )}
 
       {allDone && (
-        <div className="mt-8 animate-fade-up flex flex-wrap gap-2">
+        <div className="mt-8 animate-fade-up flex flex-wrap items-center gap-2">
           {round1Done && !round2Started && (
             <button
               onClick={startRound2}
@@ -357,6 +361,7 @@ function ConversationContent() {
           >
             New Conversation
           </button>
+          {conversationId && <ShareButton url={`${window.location.origin}/conversation/${conversationId}`} />}
         </div>
       )}
 

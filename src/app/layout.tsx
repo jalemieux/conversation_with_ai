@@ -26,6 +26,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <main className="max-w-3xl mx-auto px-6 py-12">
           {children}
         </main>
+        <footer className="max-w-3xl mx-auto px-6 pb-8 text-center text-xs text-ink-faint">
+          &copy; {new Date().getFullYear()}{' '}
+          <a href="https://smartlayer.ventures" target="_blank" rel="noopener noreferrer" className="hover:text-amber transition-colors">
+            SmartLayer Ventures
+          </a>
+        </footer>
       </body>
     </html>
   )
