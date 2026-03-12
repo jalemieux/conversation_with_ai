@@ -33,7 +33,7 @@ export default function LandingC() {
             Conversation With AI
           </h1>
           <p className="text-ink-light text-[18px] leading-relaxed max-w-lg mx-auto mb-4">
-            Hear from every top frontier model in one structured conversation. AI helps you sharpen the question, then Claude, GPT, Gemini, and Grok all respond — and review each other's answers.
+            Research any topic in depth. AI helps you frame the right question, then every frontier model responds and they critique each other's answers.
           </p>
           <p className="text-ink-muted text-[16px] leading-relaxed max-w-md mx-auto mb-8">
             Read or listen. Bring your own API keys for free, or pay a flat fee and skip the setup.
