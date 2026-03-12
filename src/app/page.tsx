@@ -1,20 +1,12 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { MODEL_CONFIGS } from '@/lib/models'
 
 interface RecentConversation {
   id: string
   createdAt: string
   rawInput: string
   topicType: string
-}
-
-const MODEL_COLORS: Record<string, { dot: string; activeBg: string; activeBorder: string; activeText: string }> = {
-  claude:  { dot: 'bg-claude',  activeBg: 'bg-claude-faint',  activeBorder: 'border-claude/30',  activeText: 'text-claude' },
-  gpt:     { dot: 'bg-gpt',     activeBg: 'bg-gpt-faint',     activeBorder: 'border-gpt/30',     activeText: 'text-gpt' },
-  gemini:  { dot: 'bg-gemini',  activeBg: 'bg-gemini-faint',  activeBorder: 'border-gemini/30',  activeText: 'text-gemini' },
-  grok:    { dot: 'bg-grok',    activeBg: 'bg-grok-faint',    activeBorder: 'border-grok/30',    activeText: 'text-grok' },
 }
 
 const TOPIC_COLORS: Record<string, string> = {
@@ -26,28 +18,14 @@ const TOPIC_COLORS: Record<string, string> = {
 
 export default function Home() {
   const [rawInput, setRawInput] = useState('')
-  const [selectedModels, setSelectedModels] = useState<string[]>(Object.keys(MODEL_CONFIGS))
   const [recent, setRecent] = useState<RecentConversation[]>([])
   const [loading, setLoading] = useState(false)
-  const [availableModels, setAvailableModels] = useState<string[]>(Object.keys(MODEL_CONFIGS))
 
   useEffect(() => {
     fetch('/api/user')
       .then(r => r.json())
       .then(data => {
-        if (data.subscriptionStatus === 'active') {
-          setAvailableModels(Object.keys(MODEL_CONFIGS))
-          setSelectedModels(Object.keys(MODEL_CONFIGS))
-        } else if (data.providers?.length > 0) {
-          const providerToModels: Record<string, string[]> = {}
-          for (const [key, config] of Object.entries(MODEL_CONFIGS)) {
-            if (!providerToModels[config.provider]) providerToModels[config.provider] = []
-            providerToModels[config.provider].push(key)
-          }
-          const available = data.providers.flatMap((p: string) => providerToModels[p] || [])
-          setAvailableModels(available)
-          setSelectedModels(available)
-        } else {
+        if (data.subscriptionStatus !== 'active' && (!data.providers || data.providers.length === 0)) {
           window.location.href = '/setup'
         }
       })
@@ -60,12 +38,6 @@ export default function Home() {
       .then(setRecent)
       .catch(() => {})
   }, [])
-
-  const toggleModel = (key: string) => {
-    setSelectedModels((prev) =>
-      prev.includes(key) ? prev.filter((m) => m !== key) : [...prev, key]
-    )
-  }
 
   const handleDelete = async (e: React.MouseEvent, id: string) => {
     e.preventDefault()
@@ -87,7 +59,7 @@ export default function Home() {
   }
 
   const handleSubmit = async () => {
-    if (!rawInput.trim() || selectedModels.length === 0) return
+    if (!rawInput.trim()) return
     setLoading(true)
 
     try {
@@ -103,7 +75,6 @@ export default function Home() {
         rawInput: data.rawInput,
         recommended: data.recommended,
         augmentations: JSON.stringify(data.augmentations),
-        models: selectedModels.join(','),
       })
       window.location.href = `/review?${params.toString()}`
     } catch {
@@ -135,7 +106,7 @@ export default function Home() {
         {/* Topic input */}
         <div className="mb-6">
           <label className="text-[11px] font-semibold tracking-[0.2em] uppercase text-ink-muted mb-3 block">
-            Topic
+            You Ask
           </label>
           <textarea
             value={rawInput}
@@ -145,40 +116,10 @@ export default function Home() {
           />
         </div>
 
-        {/* Model selector */}
-        <div className="mb-6">
-          <label className="text-[11px] font-semibold tracking-[0.2em] uppercase text-ink-muted mb-3 block">
-            Panel
-          </label>
-          <div className="flex gap-2.5 flex-wrap">
-            {Object.entries(MODEL_CONFIGS).filter(([key]) => availableModels.includes(key)).map(([key, config]) => {
-              const active = selectedModels.includes(key)
-              const colors = MODEL_COLORS[key] ?? { dot: 'bg-amber', activeBg: 'bg-amber-faint', activeBorder: 'border-amber/30', activeText: 'text-amber' }
-              return (
-                <button
-                  key={key}
-                  onClick={() => toggleModel(key)}
-                  className={`inline-flex items-center gap-2.5 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 border cursor-pointer ${
-                    active
-                      ? `${colors.activeBg} ${colors.activeBorder} ${colors.activeText}`
-                      : 'bg-cream-dark/40 border-border text-ink-faint hover:text-ink-muted hover:border-border-strong'
-                  }`}
-                >
-                  <span className={`w-2.5 h-2.5 rounded-full transition-all duration-200 ${colors.dot} ${active ? 'opacity-100' : 'opacity-20'}`} />
-                  <span className="flex flex-col items-start leading-tight">
-                    <span>{config.name}</span>
-                    <span className={`text-[10px] font-normal ${active ? 'opacity-60' : 'opacity-40'}`}>{config.modelId}</span>
-                  </span>
-                </button>
-              )
-            })}
-          </div>
-        </div>
-
         {/* Submit */}
         <button
           onClick={handleSubmit}
-          disabled={loading || !rawInput.trim() || selectedModels.length === 0}
+          disabled={loading || !rawInput.trim()}
           className="w-full py-3.5 bg-amber text-white hover:bg-amber-light disabled:bg-cream-dark disabled:text-ink-faint rounded-lg font-semibold text-sm tracking-wide transition-all duration-200 shadow-[0_2px_10px_rgba(194,116,47,0.25)] hover:shadow-[0_4px_16px_rgba(194,116,47,0.3)] disabled:shadow-none cursor-pointer disabled:cursor-default"
         >
           {loading ? 'Preparing...' : 'Prepare Conversation'}

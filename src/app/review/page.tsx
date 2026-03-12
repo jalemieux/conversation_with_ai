@@ -1,9 +1,17 @@
 'use client'
 
-import { Suspense, useState, useMemo } from 'react'
+import { Suspense, useState, useEffect, useMemo } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { TOPIC_TYPES, type TopicType, type AugmentationsMap } from '@/lib/augmenter'
 import type { ResponseLength } from '@/lib/orchestrator'
+import { MODEL_CONFIGS } from '@/lib/models'
+
+const MODEL_COLORS: Record<string, { dot: string; activeBg: string; activeBorder: string; activeText: string }> = {
+  claude:  { dot: 'bg-claude',  activeBg: 'bg-claude-faint',  activeBorder: 'border-claude/30',  activeText: 'text-claude' },
+  gpt:     { dot: 'bg-gpt',     activeBg: 'bg-gpt-faint',     activeBorder: 'border-gpt/30',     activeText: 'text-gpt' },
+  gemini:  { dot: 'bg-gemini',  activeBg: 'bg-gemini-faint',  activeBorder: 'border-gemini/30',  activeText: 'text-gemini' },
+  grok:    { dot: 'bg-grok',    activeBg: 'bg-grok-faint',    activeBorder: 'border-grok/30',    activeText: 'text-grok' },
+}
 
 const RESPONSE_LENGTHS: { value: ResponseLength; label: string; description: string }[] = [
   { value: 'brief', label: 'Brief', description: 'Quick takes' },
@@ -23,9 +31,37 @@ function ReviewContent() {
 
   const initialRawInput = searchParams.get('rawInput') ?? ''
   const recommended = (searchParams.get('recommended') ?? 'prediction') as TopicType
-  const models = searchParams.get('models') ?? ''
 
   const [rawInput, setRawInput] = useState(initialRawInput)
+  const [availableModels, setAvailableModels] = useState<string[]>(Object.keys(MODEL_CONFIGS))
+  const [selectedModels, setSelectedModels] = useState<string[]>(Object.keys(MODEL_CONFIGS))
+
+  useEffect(() => {
+    fetch('/api/user')
+      .then(r => r.json())
+      .then(data => {
+        if (data.subscriptionStatus === 'active') {
+          setAvailableModels(Object.keys(MODEL_CONFIGS))
+          setSelectedModels(Object.keys(MODEL_CONFIGS))
+        } else if (data.providers?.length > 0) {
+          const providerToModels: Record<string, string[]> = {}
+          for (const [key, config] of Object.entries(MODEL_CONFIGS)) {
+            if (!providerToModels[config.provider]) providerToModels[config.provider] = []
+            providerToModels[config.provider].push(key)
+          }
+          const available = data.providers.flatMap((p: string) => providerToModels[p] || [])
+          setAvailableModels(available)
+          setSelectedModels(available)
+        }
+      })
+      .catch(() => {})
+  }, [])
+
+  const toggleModel = (key: string) => {
+    setSelectedModels((prev) =>
+      prev.includes(key) ? prev.filter((m) => m !== key) : [...prev, key]
+    )
+  }
 
   const augmentations: AugmentationsMap = useMemo(() => {
     try {
@@ -86,7 +122,7 @@ function ReviewContent() {
       augmentedPrompt,
       topicType: selectedType,
       framework: currentFramework,
-      models,
+      models: selectedModels.join(','),
       essayMode: String(essayMode),
       responseLength,
     })
@@ -181,7 +217,34 @@ function ReviewContent() {
         </div>
       </div>
 
-      <div className="animate-fade-up stagger-5 mb-8">
+      <div className="animate-fade-up stagger-5 mb-6">
+        <p className="text-xs font-medium tracking-widest uppercase text-ink-faint mb-3">Panel</p>
+        <div className="flex gap-2.5 flex-wrap">
+          {Object.entries(MODEL_CONFIGS).filter(([key]) => availableModels.includes(key)).map(([key, config]) => {
+            const active = selectedModels.includes(key)
+            const colors = MODEL_COLORS[key] ?? { dot: 'bg-amber', activeBg: 'bg-amber-faint', activeBorder: 'border-amber/30', activeText: 'text-amber' }
+            return (
+              <button
+                key={key}
+                onClick={() => toggleModel(key)}
+                className={`inline-flex items-center gap-2.5 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 border cursor-pointer ${
+                  active
+                    ? `${colors.activeBg} ${colors.activeBorder} ${colors.activeText}`
+                    : 'bg-cream-dark/40 border-border text-ink-faint hover:text-ink-muted hover:border-border-strong'
+                }`}
+              >
+                <span className={`w-2.5 h-2.5 rounded-full transition-all duration-200 ${colors.dot} ${active ? 'opacity-100' : 'opacity-20'}`} />
+                <span className="flex flex-col items-start leading-tight">
+                  <span>{config.name}</span>
+                  <span className={`text-[10px] font-normal ${active ? 'opacity-60' : 'opacity-40'}`}>{config.modelId}</span>
+                </span>
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
+      <div className="animate-fade-up stagger-6 mb-8">
         <p className="text-xs font-medium tracking-widest uppercase text-ink-faint mb-2">Augmented Prompt</p>
         <textarea
           value={augmentedPrompt}
@@ -190,7 +253,7 @@ function ReviewContent() {
         />
       </div>
 
-      <div className="animate-fade-up stagger-6 flex gap-3">
+      <div className="animate-fade-up stagger-7 flex gap-3">
         <button
           onClick={() => window.history.back()}
           className="px-5 py-3 bg-card border border-border hover:border-border-strong rounded-xl font-medium transition-all duration-200 text-ink-muted hover:text-ink"
@@ -213,7 +276,8 @@ function ReviewContent() {
         </button>
         <button
           onClick={handleRun}
-          className="flex-1 py-3 bg-amber text-white hover:bg-amber-light rounded-xl font-medium transition-all duration-200 active:scale-[0.995]"
+          disabled={selectedModels.length === 0}
+          className="flex-1 py-3 bg-amber text-white hover:bg-amber-light disabled:bg-cream-dark disabled:text-ink-faint rounded-xl font-medium transition-all duration-200 active:scale-[0.995]"
         >
           Run Conversation
         </button>
