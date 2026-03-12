@@ -66,17 +66,36 @@ function ConversationContent() {
   const essayMode = searchParams.get('essayMode') === 'true'
   const responseLength = searchParams.get('responseLength') ?? undefined
 
-  const callModel = useCallback(async (convId: string, modelKey: string, round: number): Promise<ModelResponse> => {
-    const res = await fetch('/api/conversation/respond', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ conversationId: convId, model: modelKey, round, essayMode, responseLength }),
-    })
-    if (!res.ok) {
-      const err = await res.json()
-      throw new Error(err.error ?? 'Request failed')
+  const callModel = useCallback(async (convId: string, modelKey: string, round: number, attempt = 0): Promise<ModelResponse> => {
+    const MAX_RETRIES = 1
+    try {
+      const res = await fetch('/api/conversation/respond', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ conversationId: convId, model: modelKey, round, essayMode, responseLength }),
+      })
+      if (!res.ok) {
+        let message = `Request failed (${res.status})`
+        try {
+          const err = await res.json()
+          if (err.error) message = err.error
+        } catch {
+          // Response wasn't JSON (e.g. proxy error during deploy)
+          const text = await res.text().catch(() => '')
+          if (text) console.error(`[callModel] Non-JSON ${res.status} for ${modelKey}:`, text.slice(0, 200))
+        }
+        throw new Error(message)
+      }
+      return await res.json()
+    } catch (err) {
+      // Auto-retry on network/transient errors (connection reset during deploy, etc.)
+      if (attempt < MAX_RETRIES) {
+        console.warn(`[callModel] Retrying ${modelKey} round ${round} (attempt ${attempt + 1}):`, err instanceof Error ? err.message : err)
+        await new Promise(r => setTimeout(r, 3000))
+        return callModel(convId, modelKey, round, attempt + 1)
+      }
+      throw err
     }
-    return res.json()
   }, [essayMode, responseLength])
 
   useEffect(() => {
