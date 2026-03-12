@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-const PUBLIC_PATHS = ['/login', '/landing-a', '/landing-b', '/landing-c', '/api/auth', '/api/stripe/webhook']
+const PUBLIC_PATHS = ['/login', '/landing-a', '/landing-b', '/landing-c', '/api/auth', '/api/stripe/webhook', '/conversation', '/api/conversations']
 
-export async function proxy(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   if (process.env.NODE_ENV === 'development') {
     return NextResponse.next()
   }
