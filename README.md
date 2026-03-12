@@ -53,12 +53,15 @@ flowchart TD
 3. **Round 1** — All selected models generate responses in parallel, appearing as each completes
 4. **Round 2** *(optional)* — Click "Start Round 2" to have each model read the others' Round 1 responses and react — agreements, disagreements, and new perspectives
 5. **Export** — Copy the full discussion as Markdown, plain text, or an X thread
-6. **Text-to-Speech** — Click the speaker icon on any response to hear it read aloud via OpenAI TTS, with a unique voice per model (Claude=coral, GPT=nova, Gemini=sage, Grok=ash). The original model rewrites its response for natural spoken delivery before TTS generation. Audio is cached on disk so replaying never re-generates
-7. **Inline Audio Player** — When audio loads, an inline mini-player appears inside the response card with play/pause, rewind/forward 10s, a seekable progress bar, and time display
-8. **Magic link authentication** — Passwordless login via email (NextAuth + Resend)
-9. **$20/mo subscription via Stripe**, or bring your own API keys (BYOK)
-10. **Encrypted API key storage** — AES-256-GCM for BYOK keys at rest
-11. **Settings page** — Subscription management and API key configuration
+6. **Shareable links** — Each conversation has a public URL; unauthenticated visitors see a read-only view with a sign-up CTA
+7. **Web search** — Models can ground responses with live web results via Brave Search; sources are displayed inline
+8. **Text-to-Speech** — Click the speaker icon on any response to hear it read aloud via OpenAI TTS, with a unique voice per model (Claude=coral, GPT=nova, Gemini=sage, Grok=ash). The original model rewrites its response for natural spoken delivery before TTS generation. Audio is cached on disk so replaying never re-generates
+9. **Inline Audio Player** — When audio loads, an inline mini-player appears inside the response card with play/pause, rewind/forward 10s, a seekable progress bar, and time display
+10. **Magic link authentication** — Passwordless login via email (NextAuth + Resend)
+11. **$20/mo subscription via Stripe**, or bring your own API keys (BYOK)
+12. **Encrypted API key storage** — AES-256-GCM for BYOK keys at rest
+13. **Settings page** — Subscription management and API key configuration
+14. **Landing pages** — Multiple marketing/onboarding variants (A/B/C) for unauthenticated visitors
 
 ## Key Technical Decisions
 
@@ -75,8 +78,8 @@ flowchart TD
 | Provider | Model | Features |
 |----------|-------|----------|
 | Anthropic | `claude-opus-4-6` | Thinking (5k token budget) |
-| OpenAI | `gpt-5.1` | Reasoning effort: medium |
-| Google | `gemini-3.1-pro-preview` | Thinking (5k token budget) |
+| OpenAI | `gpt-5.4` | Reasoning effort: medium |
+| Google | `gemini-2.5-pro` | Thinking (5k token budget) |
 | xAI | `grok-4-1-fast-reasoning` | — |
 
 Augmentation uses Claude Haiku 4.5 for speed and cost.
@@ -89,23 +92,37 @@ Next.js 16 · React 19 · TypeScript · Tailwind CSS 4 · Vercel AI SDK 6 · Dri
 
 ```
 src/
+├── middleware.ts                # Auth gate — redirects unauthenticated users to landing page
 ├── app/                        # Next.js pages + API routes
-│   ├── page.tsx                # Home — topic input + model selector
+│   ├── page.tsx                # Home — topic input + recent conversations
 │   ├── review/page.tsx         # Augmentation review + framing picker
 │   ├── conversation/
 │   │   ├── page.tsx            # Live parallel discussion
-│   │   └── [id]/page.tsx       # Conversation history detail view
+│   │   └── [id]/page.tsx       # Conversation detail (shareable, public read-only)
+│   ├── landing-{a,b,c}/       # Marketing/onboarding variants
+│   ├── login/                  # Magic link sign-in + verification
+│   ├── settings/               # Subscription + API key management
+│   ├── setup/                  # First-run onboarding
 │   └── api/
 │       ├── augment/            # POST — multi-augmentation
 │       ├── conversation/       # POST — save metadata; /respond — per-model generation
+│       ├── conversations/      # GET list, GET/DELETE by id
 │       ├── tts/                # POST — text-to-speech via OpenAI
-│       └── conversations/      # GET list, GET/DELETE by id
+│       ├── keys/               # BYOK API key management
+│       ├── stripe/             # Subscription webhooks + checkout
+│       └── user/               # GET current user + subscription status
 ├── lib/
 │   ├── models.ts               # 4 provider configs (Claude, GPT, Gemini, Grok)
 │   ├── augmenter.ts            # Prompt rewriting + 5-framing generation
 │   ├── orchestrator.ts         # Round 1 & 2 prompt builders
 │   ├── export.ts               # Markdown, text, X-thread formatters
 │   ├── tts.ts                  # Voice mapping, markdown stripping, chunking, read-aloud rewriting
+│   ├── brave-search.ts         # Web search integration via Brave Search API
+│   ├── sources.ts              # Source extraction and formatting
+│   ├── encryption.ts           # AES-256-GCM for BYOK key storage
+│   ├── auth-config.ts          # NextAuth v5 configuration + JWT callbacks
+│   ├── access.ts               # Subscription + BYOK access checks
+│   ├── user-access.ts          # User access utilities
 │   └── types.ts                # Shared TypeScript interfaces
 ├── hooks/
 │   └── useTTS.ts               # TTS audio playback state management
@@ -115,7 +132,13 @@ src/
 └── components/
     ├── MarkdownContent.tsx     # Rendered markdown with GFM support
     ├── SpeakerButton.tsx       # TTS speaker icon with state indicators + cached dot
-    └── AudioPlayer.tsx         # Inline mini-player (seek, skip, progress bar)
+    ├── AudioPlayer.tsx         # Inline mini-player (seek, skip, progress bar)
+    ├── ShareButton.tsx         # Copy-to-clipboard share link
+    ├── CopyButton.tsx          # Copy response content
+    ├── ConversationFlow.tsx    # Landing page conversation demo
+    ├── ExampleConversation.tsx # Landing page example display
+    ├── LandingPricing.tsx      # Pricing section component
+    └── ScrollFadeIn.tsx        # Scroll-triggered fade animation wrapper
 ```
 
 ## Running Locally
@@ -143,6 +166,7 @@ Create `.env.local` with the required variables:
 | `CWAI_STRIPE_WEBHOOK_SECRET` | Stripe webhook signing secret |
 | `CWAI_STRIPE_PRICE_ID` | Stripe Price ID for $20/mo plan |
 | `CWAI_ENCRYPTION_KEY` | 64-char hex key for AES-256-GCM encryption |
+| `CWAI_BRAVE_API_KEY` | Brave Search API key for web grounding |
 
 ```bash
 npm run dev        # http://localhost:3000
