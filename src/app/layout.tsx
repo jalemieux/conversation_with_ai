@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import Script from 'next/script'
 import { Source_Serif_4, DM_Sans } from 'next/font/google'
 import './globals.css'
 
@@ -22,6 +23,15 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
+      <Script src="https://www.googletagmanager.com/gtag/js?id=G-4WBHPXNRST" strategy="afterInteractive" />
+      <Script id="google-analytics" strategy="afterInteractive">
+        {`
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', 'G-4WBHPXNRST');
+        `}
+      </Script>
       <body className={`${sourceSerif.variable} ${dmSans.variable} font-[family-name:var(--font-sans)] bg-cream text-ink min-h-screen antialiased`}>
         <main className="max-w-3xl mx-auto px-6 py-12">
           {children}
