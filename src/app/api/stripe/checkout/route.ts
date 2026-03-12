@@ -32,6 +32,7 @@ export async function POST() {
     customer: customerId,
     mode: 'subscription',
     line_items: [{ price: process.env.CWAI_STRIPE_PRICE_ID!, quantity: 1 }],
+    allow_promotion_codes: true,
     success_url: `${process.env.CWAI_NEXTAUTH_URL}/?checkout=success`,
     cancel_url: `${process.env.CWAI_NEXTAUTH_URL}/setup?checkout=canceled`,
   })

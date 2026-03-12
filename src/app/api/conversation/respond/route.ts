@@ -78,7 +78,6 @@ export async function POST(request: Request) {
 
   // Build model options — search only in Round 1
   const searchConfig = round === 1 ? getSearchConfig(modelKey, apiKey) : {}
-
   const MAX_RETRIES = 2
   const callModel = async () => {
     return generateText({

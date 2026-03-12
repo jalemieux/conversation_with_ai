@@ -18,7 +18,7 @@ const PLATFORM_KEYS: Record<string, string | undefined> = {
 function createProvider(providerName: string, apiKey: string): (modelId: string) => LanguageModel {
   switch (providerName) {
     case 'anthropic': return (modelId) => createAnthropic({ apiKey })(modelId)
-    case 'openai': return (modelId) => createOpenAI({ apiKey })(modelId)
+    case 'openai': return (modelId) => createOpenAI({ apiKey }).responses(modelId)
     case 'google': return (modelId) => createGoogleGenerativeAI({ apiKey })(modelId)
     case 'xai': return (modelId) => createXai({ apiKey }).responses(modelId)
     default: throw new Error(`Unknown provider: ${providerName}`)
