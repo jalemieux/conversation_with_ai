@@ -97,7 +97,7 @@ export default function Home() {
           Conversation With AI
         </h1>
         <p className="text-ink-muted text-[15px] leading-relaxed max-w-lg">
-          Moderate a structured roundtable between frontier models. Pose a question, select your panel, and compare perspectives.
+          Let&apos;s help you frame the best prompt for your question.
         </p>
       </header>
 
