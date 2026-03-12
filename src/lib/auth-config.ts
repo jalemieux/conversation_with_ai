@@ -1,3 +1,8 @@
+// NextAuth v5 reads AUTH_URL for constructing callback URLs (e.g. magic link emails)
+if (process.env.CWAI_NEXTAUTH_URL && !process.env.AUTH_URL) {
+  process.env.AUTH_URL = process.env.CWAI_NEXTAUTH_URL
+}
+
 import NextAuth from 'next-auth'
 import Resend from 'next-auth/providers/resend'
 import { db } from '@/db'
