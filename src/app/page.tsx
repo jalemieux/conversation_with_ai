@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { trackEvent } from '@/lib/analytics'
 
 interface RecentConversation {
   id: string
@@ -70,6 +71,11 @@ export default function Home() {
       })
 
       const data = await res.json()
+
+      trackEvent('conversation_started', {
+        topic_type: data.recommended ?? '',
+        framework: data.augmentations?.[data.recommended]?.framework ?? '',
+      })
 
       const params = new URLSearchParams({
         rawInput: data.rawInput,

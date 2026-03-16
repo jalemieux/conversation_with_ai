@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, FormEvent } from 'react'
+import { trackEvent } from '@/lib/analytics'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -24,6 +25,7 @@ export default function LoginPage() {
       if (result?.error) {
         setError('Failed to send login link. Please try again.')
       } else {
+        trackEvent('login', { method: 'magic_link' })
         setSubmitted(true)
       }
     } catch {

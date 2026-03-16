@@ -8,6 +8,7 @@ import { SpeakerButton } from '@/components/SpeakerButton'
 import { AudioPlayer } from '@/components/AudioPlayer'
 import { CopyButton } from '@/components/CopyButton'
 import { ShareButton } from '@/components/ShareButton'
+import { trackEvent } from '@/lib/analytics'
 
 interface ModelResponse {
   round: number
@@ -131,6 +132,13 @@ function ConversationContent() {
           callModel(convId, modelKey, 1)
             .then((response) => {
               setRound1States((prev) => ({ ...prev, [modelKey]: { loading: false, error: null, response } }))
+              trackEvent('model_response', {
+                model: modelKey,
+                round: 1,
+                input_tokens: response.usage?.inputTokens ?? 0,
+                output_tokens: response.usage?.outputTokens ?? 0,
+                cost: response.usage?.cost ?? 0,
+              })
             })
             .catch((err) => {
               setRound1States((prev) => ({ ...prev, [modelKey]: { loading: false, error: err.message, response: null } }))
@@ -153,6 +161,13 @@ function ConversationContent() {
       callModel(conversationId, modelKey, 2)
         .then((response) => {
           setRound2States((prev) => ({ ...prev, [modelKey]: { loading: false, error: null, response } }))
+          trackEvent('model_response', {
+            model: modelKey,
+            round: 2,
+            input_tokens: response.usage?.inputTokens ?? 0,
+            output_tokens: response.usage?.outputTokens ?? 0,
+            cost: response.usage?.cost ?? 0,
+          })
         })
         .catch((err) => {
           setRound2States((prev) => ({ ...prev, [modelKey]: { loading: false, error: err.message, response: null } }))
@@ -166,6 +181,34 @@ function ConversationContent() {
   const round2Loading = Object.values(round2States).some((s) => s.loading)
   const round2Done = round2Started && !round2Loading
   const allDone = round1Done && (!round2Started || round2Done)
+
+  const round1TrackedRef = useRef(false)
+  const round2TrackedRef = useRef(false)
+
+  useEffect(() => {
+    if (round1Done && !round1TrackedRef.current) {
+      round1TrackedRef.current = true
+      trackEvent('round_completed', { round: 1, conversation_id: conversationId ?? '' })
+    }
+  }, [round1Done, conversationId])
+
+  useEffect(() => {
+    if (round2Done && !round2TrackedRef.current) {
+      round2TrackedRef.current = true
+      trackEvent('round_completed', { round: 2, conversation_id: conversationId ?? '' })
+      const allResponses = [
+        ...Object.values(round1States),
+        ...Object.values(round2States),
+      ].filter((s) => s.response).map((s) => s.response!)
+      const totalCost = allResponses.reduce((sum, r) => sum + (r.usage?.cost ?? 0), 0)
+      const totalTokens = allResponses.reduce((sum, r) => sum + (r.usage?.inputTokens ?? 0) + (r.usage?.outputTokens ?? 0), 0)
+      trackEvent('conversation_completed', {
+        conversation_id: conversationId ?? '',
+        total_cost: totalCost,
+        total_tokens: totalTokens,
+      })
+    }
+  }, [round2Done, conversationId, round1States, round2States])
 
   const getAccent = (model: string, round: number) => {
     if (round === 2) return 'text-round2'
@@ -206,10 +249,11 @@ function ConversationContent() {
           </span>
         )}
         <span className="ml-auto flex items-center">
-          <CopyButton content={r.content} />
+          <CopyButton content={r.content} model={r.model} />
           <SpeakerButton
             state={getSpeakerState(`${r.round}-${r.model}`)}
             onClick={() => tts.toggle(`${r.round}-${r.model}`, r.content, r.model, conversationId ?? undefined, r.round)}
+            model={r.model}
           />
         </span>
       </summary>

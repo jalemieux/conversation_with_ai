@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { trackEvent } from '@/lib/analytics'
 
 interface ShareButtonProps {
   url: string
@@ -12,6 +13,8 @@ export function ShareButton({ url }: ShareButtonProps) {
   const handleClick = () => {
     navigator.clipboard.writeText(url)
     setCopied(true)
+    const match = url.match(/\/conversation\/([^/?]+)/)
+    trackEvent('share_clicked', { conversation_id: match?.[1] ?? '' })
     setTimeout(() => setCopied(false), 2000)
   }
 

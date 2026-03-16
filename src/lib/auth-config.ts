@@ -8,7 +8,8 @@ import Resend from 'next-auth/providers/resend'
 import { db } from '@/db'
 import { users, accounts, verificationTokens } from '@/db/schema'
 import { eq, and } from 'drizzle-orm'
-import { randomUUID } from 'crypto'
+import { randomUUID, createHash } from 'crypto'
+import { sendServerEvent } from '@/lib/analytics-server'
 
 const DEV_USER_ID = 'dev-user-00000000-0000-0000-0000-000000000000'
 
@@ -40,6 +41,8 @@ const nextAuth = NextAuth({
         image: data.image ?? null,
       })
       const [user] = await db.select().from(users).where(eq(users.id, id))
+      const hashedId = createHash('sha256').update(id).digest('hex')
+      sendServerEvent(hashedId, hashedId, [{ name: 'sign_up' }])
       return { ...user, emailVerified: user.emailVerified ? new Date(user.emailVerified) : null }
     },
     getUser: async (id) => {

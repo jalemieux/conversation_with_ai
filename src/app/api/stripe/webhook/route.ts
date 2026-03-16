@@ -3,6 +3,7 @@ import Stripe from 'stripe'
 import { db } from '@/db'
 import { users } from '@/db/schema'
 import { eq } from 'drizzle-orm'
+import { sendServerEvent } from '@/lib/analytics-server'
 
 const stripe = new Stripe(process.env.CWAI_STRIPE_SECRET_KEY!)
 
@@ -33,6 +34,9 @@ export async function POST(request: NextRequest) {
           subscriptionStatus: 'active',
           ...(periodEnd && { subscriptionCurrentPeriodEnd: new Date(periodEnd * 1000).toISOString() }),
         }).where(eq(users.stripeCustomerId, session.customer as string))
+        sendServerEvent(session.customer as string, undefined, [
+          { name: 'purchase', params: { value: 20, currency: 'USD' } },
+        ])
       }
       break
     }
@@ -47,6 +51,9 @@ export async function POST(request: NextRequest) {
           subscriptionStatus: 'active',
           ...(periodEnd && { subscriptionCurrentPeriodEnd: new Date(periodEnd * 1000).toISOString() }),
         }).where(eq(users.stripeCustomerId, invoice.customer as string))
+        sendServerEvent(invoice.customer as string, undefined, [
+          { name: 'subscription_renewed', params: { value: 20 } },
+        ])
       }
       break
     }
@@ -66,6 +73,10 @@ export async function POST(request: NextRequest) {
         stripeSubscriptionId: null,
         subscriptionCurrentPeriodEnd: null,
       }).where(eq(users.stripeSubscriptionId, subscription.id))
+      const customerId = typeof subscription.customer === 'string' ? subscription.customer : subscription.customer.id
+      sendServerEvent(customerId, undefined, [
+        { name: 'subscription_cancelled' },
+      ])
       break
     }
   }

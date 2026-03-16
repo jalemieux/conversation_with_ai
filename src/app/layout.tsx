@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import Script from 'next/script'
 import { Source_Serif_4, DM_Sans } from 'next/font/google'
+import { AnalyticsIdentify } from '@/components/AnalyticsIdentify'
 import './globals.css'
 
 const sourceSerif = Source_Serif_4({
@@ -33,6 +34,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         `}
       </Script>
       <body className={`${sourceSerif.variable} ${dmSans.variable} font-[family-name:var(--font-sans)] bg-cream text-ink min-h-screen antialiased`}>
+        <AnalyticsIdentify />
         <main className="max-w-3xl mx-auto px-6 py-12">
           {children}
         </main>

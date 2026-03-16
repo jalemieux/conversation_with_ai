@@ -1,14 +1,17 @@
 'use client'
 
+import { trackEvent } from '@/lib/analytics'
+
 export type SpeakerState = 'idle' | 'loading' | 'playing' | 'error'
 
 interface SpeakerButtonProps {
   state: SpeakerState
   onClick: () => void
   cached?: boolean
+  model?: string
 }
 
-export function SpeakerButton({ state, onClick, cached }: SpeakerButtonProps) {
+export function SpeakerButton({ state, onClick, cached, model }: SpeakerButtonProps) {
   const isLoading = state === 'loading'
 
   const label =
@@ -21,7 +24,10 @@ export function SpeakerButton({ state, onClick, cached }: SpeakerButtonProps) {
       type="button"
       onClick={(e) => {
         e.stopPropagation()
-        if (!isLoading) onClick()
+        if (!isLoading) {
+          if (state === 'idle' && model) trackEvent('tts_played', { model })
+          onClick()
+        }
       }}
       disabled={isLoading}
       aria-label={label}

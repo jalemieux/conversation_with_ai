@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { trackEvent } from '@/lib/analytics'
 
 interface UserKey {
   id: string
@@ -43,6 +44,7 @@ export default function SettingsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ provider: newKeyProvider, apiKey: newKeyValue }),
       })
+      trackEvent('api_key_added', { provider: newKeyProvider })
       setNewKeyProvider('')
       setNewKeyValue('')
       const updated = await fetch('/api/keys').then(r => r.json())
@@ -59,6 +61,7 @@ export default function SettingsPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ provider }),
     })
+    trackEvent('api_key_removed', { provider })
     setKeys(keys.filter(k => k.provider !== provider))
   }
 
@@ -74,6 +77,7 @@ export default function SettingsPage() {
   }
 
   async function handleSubscribe() {
+    trackEvent('begin_checkout')
     setPortalLoading(true)
     try {
       const res = await fetch('/api/stripe/checkout', { method: 'POST' })

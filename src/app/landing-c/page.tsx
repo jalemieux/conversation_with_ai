@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { ScrollFadeIn } from '@/components/ScrollFadeIn'
 import { ConversationFlow } from '@/components/ConversationFlow'
+import { LandingTracker, LandingCTA } from '@/components/LandingTracker'
 import { MODEL_DOTS, MODEL_ACCENTS } from '@/lib/model-colors'
 
 export const metadata: Metadata = {
@@ -26,6 +27,7 @@ const MODELS = [
 export default function LandingC() {
   return (
     <>
+      <LandingTracker variant="c" />
       {/* ── Hero ── */}
       <section className="pt-16 pb-20 text-center">
         <ScrollFadeIn>
@@ -38,12 +40,13 @@ export default function LandingC() {
           <p className="text-ink-muted text-[16px] leading-relaxed max-w-md mx-auto mb-8">
             Read or listen. Bring your own API keys for free, or pay a flat fee and skip the setup.
           </p>
-          <Link
+          <LandingCTA
+            variant="c"
             href="/login"
             className="inline-block px-8 py-3.5 bg-amber text-white rounded-lg font-semibold text-sm tracking-wide transition-all duration-200 hover:bg-amber-light shadow-[0_2px_10px_rgba(122,154,130,0.25)] hover:shadow-[0_4px_16px_rgba(122,154,130,0.3)]"
           >
             Sign up
-          </Link>
+          </LandingCTA>
           <p className="mt-3 text-ink-muted text-sm">
             Already have an account?{' '}
             <Link href="/login" className="underline hover:text-ink transition-colors">
@@ -105,12 +108,13 @@ export default function LandingC() {
               <p className="text-ink-muted text-[14px] leading-relaxed mb-5">
                 One flat fee. Reasonable access to every frontier model. No API keys, no configuration — just sign in and go.
               </p>
-              <Link
+              <LandingCTA
+                variant="c"
                 href="/login"
                 className="block w-full py-3 bg-amber text-white rounded-lg font-semibold text-sm tracking-wide text-center transition-all duration-200 hover:bg-amber-light shadow-[0_2px_10px_rgba(122,154,130,0.25)] hover:shadow-[0_4px_16px_rgba(122,154,130,0.3)]"
               >
                 Sign up
-              </Link>
+              </LandingCTA>
             </div>
 
             {/* BYOK card */}
@@ -121,12 +125,13 @@ export default function LandingC() {
               <p className="text-ink-muted text-[14px] leading-relaxed mb-5">
                 Free access. Plug in your own API keys and pay providers directly. Same features, no subscription.
               </p>
-              <Link
+              <LandingCTA
+                variant="c"
                 href="/login"
                 className="block w-full py-3 bg-card border border-border text-ink rounded-lg font-semibold text-sm tracking-wide text-center transition-all duration-200 hover:border-border-strong"
               >
                 Sign up
-              </Link>
+              </LandingCTA>
             </div>
           </div>
         </ScrollFadeIn>
@@ -138,12 +143,13 @@ export default function LandingC() {
           <p className="font-[family-name:var(--font-serif)] text-xl text-ink mb-6">
             One question. Every frontier model. No switching tabs.
           </p>
-          <Link
+          <LandingCTA
+            variant="c"
             href="/login"
             className="inline-block px-8 py-3.5 bg-amber text-white rounded-lg font-semibold text-sm tracking-wide transition-all duration-200 hover:bg-amber-light shadow-[0_2px_10px_rgba(122,154,130,0.25)] hover:shadow-[0_4px_16px_rgba(122,154,130,0.3)]"
           >
             Sign up
-          </Link>
+          </LandingCTA>
         </ScrollFadeIn>
       </section>
 

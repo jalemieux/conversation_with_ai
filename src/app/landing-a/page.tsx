@@ -1,8 +1,8 @@
 import type { Metadata } from 'next'
-import Link from 'next/link'
 import { ScrollFadeIn } from '@/components/ScrollFadeIn'
 import { ExampleConversation } from '@/components/ExampleConversation'
 import { LandingPricing } from '@/components/LandingPricing'
+import { LandingTracker, LandingCTA } from '@/components/LandingTracker'
 import { MODEL_DOTS, MODEL_ACCENTS } from '@/lib/model-colors'
 
 export const metadata: Metadata = {
@@ -42,6 +42,7 @@ const FEATURES = [
 export default function LandingA() {
   return (
     <>
+      <LandingTracker variant="a" />
       {/* ── Hero ── */}
       <section className="pt-16 pb-20 text-center">
         <ScrollFadeIn>
@@ -51,12 +52,13 @@ export default function LandingA() {
           <p className="text-ink-muted text-[16px] leading-relaxed max-w-lg mx-auto mb-8">
             Structured analysis from the frontier models. Frame the question, compare the answers, surface what one model misses.
           </p>
-          <Link
+          <LandingCTA
+            variant="a"
             href="/login"
             className="inline-block px-8 py-3.5 bg-amber text-white rounded-lg font-semibold text-sm tracking-wide transition-all duration-200 hover:bg-amber-light shadow-[0_2px_10px_rgba(122,154,130,0.25)] hover:shadow-[0_4px_16px_rgba(122,154,130,0.3)]"
           >
             Sign in
-          </Link>
+          </LandingCTA>
         </ScrollFadeIn>
       </section>
 
@@ -144,12 +146,13 @@ export default function LandingA() {
           <p className="font-[family-name:var(--font-serif)] text-xl text-ink mb-6">
             One question. Four perspectives.
           </p>
-          <Link
+          <LandingCTA
+            variant="a"
             href="/login"
             className="inline-block px-8 py-3.5 bg-amber text-white rounded-lg font-semibold text-sm tracking-wide transition-all duration-200 hover:bg-amber-light shadow-[0_2px_10px_rgba(122,154,130,0.25)] hover:shadow-[0_4px_16px_rgba(122,154,130,0.3)]"
           >
             Sign in
-          </Link>
+          </LandingCTA>
         </ScrollFadeIn>
       </section>
     </>

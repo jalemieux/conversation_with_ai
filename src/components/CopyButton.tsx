@@ -1,17 +1,20 @@
 'use client'
 
 import { useState } from 'react'
+import { trackEvent } from '@/lib/analytics'
 
 interface CopyButtonProps {
   content: string
+  model?: string
 }
 
-export function CopyButton({ content }: CopyButtonProps) {
+export function CopyButton({ content, model }: CopyButtonProps) {
   const [copied, setCopied] = useState(false)
 
   const handleClick = async (e: React.MouseEvent) => {
     e.stopPropagation()
     await navigator.clipboard.writeText(content)
+    if (model) trackEvent('copy_clicked', { model })
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
