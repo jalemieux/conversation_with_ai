@@ -23,6 +23,6 @@ export async function GET() {
     email: user.email,
     subscriptionStatus: user.subscriptionStatus,
     subscriptionCurrentPeriodEnd: user.subscriptionCurrentPeriodEnd,
-    providers: keys.map(k => k.provider),
+    providers: [...new Set(keys.map(k => k.provider))],
   })
 }

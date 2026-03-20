@@ -63,7 +63,7 @@ function ConversationContent() {
   const startedRef = useRef(false)
   const tts = useTTS()
 
-  const models = (searchParams.get('models') ?? '').split(',').filter(Boolean)
+  const models = [...new Set((searchParams.get('models') ?? '').split(',').filter(Boolean))]
   const essayMode = searchParams.get('essayMode') === 'true'
   const responseLength = searchParams.get('responseLength') ?? undefined
 
