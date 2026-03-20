@@ -49,7 +49,7 @@ function ReviewContent() {
             if (!providerToModels[config.provider]) providerToModels[config.provider] = []
             providerToModels[config.provider].push(key)
           }
-          const available = data.providers.flatMap((p: string) => providerToModels[p] || [])
+          const available = [...new Set<string>(data.providers.flatMap((p: string) => providerToModels[p] || []))]
           setAvailableModels(available)
           setSelectedModels(available)
         }

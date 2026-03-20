@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest'
-import { render, screen, fireEvent, cleanup } from '@testing-library/react'
+import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react'
 
 // Mock next/navigation
 vi.mock('next/navigation', () => ({
@@ -91,5 +91,33 @@ describe('ReviewPage', () => {
     fireEvent.click(toggle)
     fireEvent.click(screen.getByText('Run Conversation'))
     expect(hrefSpy).toHaveBeenCalledWith(expect.stringContaining('essayMode=true'))
+  })
+
+  it('deduplicates models when API returns duplicate providers', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
+      json: async () => ({
+        subscriptionStatus: 'inactive',
+        providers: ['openai', 'google', 'openai', 'google'],
+      }),
+    } as Response)
+
+    render(<ReviewPage />)
+
+    await waitFor(() => {
+      expect(fetchSpy).toHaveBeenCalledWith('/api/user')
+    })
+
+    // After fetch resolves, run the conversation and check the models param
+    // Wait for state to settle after the fetch
+    await waitFor(() => {
+      fireEvent.click(screen.getByText('Run Conversation'))
+      const url = hrefSpy.mock.calls[0]?.[0] as string
+      const params = new URLSearchParams(url.split('?')[1])
+      const models = params.get('models')?.split(',') ?? []
+      // Should have no duplicates — gpt and gemini only once each
+      expect(models).toEqual([...new Set(models)])
+    })
+
+    fetchSpy.mockRestore()
   })
 })
