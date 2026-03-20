@@ -126,6 +126,7 @@ function ConversationContent() {
       .then((res) => res.json())
       .then(({ conversationId: convId }) => {
         setConversationId(convId)
+        window.history.replaceState(null, '', `/conversation/${convId}`)
 
         // Fire all Round 1 calls in parallel
         models.forEach((modelKey) => {
