@@ -61,6 +61,7 @@ function ConversationContent() {
   const [topic, setTopic] = useState('')
   const [error, setError] = useState<string | null>(null)
   const startedRef = useRef(false)
+  const modelsRef = useRef<string[]>([])
   const tts = useTTS()
 
   const models = [...new Set((searchParams.get('models') ?? '').split(',').filter(Boolean))]
@@ -112,6 +113,8 @@ function ConversationContent() {
 
     if (!augmentedPrompt || models.length === 0) return
 
+    modelsRef.current = models
+
     // Initialize round 1 loading states
     const initialStates: Record<string, ModelState> = {}
     models.forEach((m) => { initialStates[m] = { loading: true, error: null, response: null } })
@@ -155,10 +158,10 @@ function ConversationContent() {
     setRound2Started(true)
 
     const initialStates: Record<string, ModelState> = {}
-    models.forEach((m) => { initialStates[m] = { loading: true, error: null, response: null } })
+    modelsRef.current.forEach((m) => { initialStates[m] = { loading: true, error: null, response: null } })
     setRound2States(initialStates)
 
-    models.forEach((modelKey) => {
+    modelsRef.current.forEach((modelKey) => {
       callModel(conversationId, modelKey, 2)
         .then((response) => {
           setRound2States((prev) => ({ ...prev, [modelKey]: { loading: false, error: null, response } }))
@@ -352,7 +355,7 @@ function ConversationContent() {
             <div className="flex-1 h-px bg-border" />
           </div>
           <div className="space-y-3">
-            {models.map((modelKey) => {
+            {modelsRef.current.map((modelKey) => {
               const state = round1States[modelKey]
               if (!state) return null
               if (state.response) return <ResponseCard key={modelKey} r={state.response} />
@@ -370,7 +373,7 @@ function ConversationContent() {
             <div className="flex-1 h-px bg-border" />
           </div>
           <div className="space-y-3">
-            {models.map((modelKey) => {
+            {modelsRef.current.map((modelKey) => {
               const state = round2States[modelKey]
               if (!state) return null
               if (state.response) return <ResponseCard key={modelKey} r={state.response} />
@@ -385,7 +388,7 @@ function ConversationContent() {
         <div className="text-center py-10 animate-fade-in">
           <div className="inline-flex items-center gap-3 text-ink-muted">
             <span className="w-5 h-5 border-2 border-ink-faint/30 border-t-amber rounded-full animate-spin" />
-            Round 1 in progress... ({round1Responses.length} of {models.length} responses received)
+            Round 1 in progress... ({round1Responses.length} of {modelsRef.current.length} responses received)
           </div>
         </div>
       )}
