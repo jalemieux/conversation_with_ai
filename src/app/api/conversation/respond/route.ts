@@ -5,6 +5,7 @@ import { conversations, responses, userApiKeys, users } from '@/db/schema'
 import { getModelProvider, getSearchConfig, MODEL_CONFIGS, calculateCost } from '@/lib/models'
 import { extractSources } from '@/lib/sources'
 import { buildUserPrompt, buildSystemPrompt } from '@/lib/orchestrator'
+import { RespondRequestSchema } from '@/lib/validation'
 import type { Round1Response } from '@/lib/orchestrator'
 import { eq, and } from 'drizzle-orm'
 import { randomUUID } from 'crypto'
@@ -12,13 +13,14 @@ import { auth } from '@/lib/auth-config'
 import { decrypt } from '@/lib/encryption'
 
 export async function POST(request: Request) {
-  const { conversationId, model: modelKey, round, essayMode, responseLength } = await request.json()
+  const body = await request.json()
+  const parsed = RespondRequestSchema.safeParse(body)
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 })
+  }
+  const { conversationId, model: modelKey, round } = parsed.data
 
   console.log(`[respond] START model=${modelKey} round=${round} conversationId=${conversationId}`)
-
-  if (!conversationId || !modelKey || !round) {
-    return NextResponse.json({ error: 'conversationId, model, and round are required' }, { status: 400 })
-  }
 
   const config = MODEL_CONFIGS[modelKey]
   if (!config) {
@@ -30,6 +32,10 @@ export async function POST(request: Request) {
   if (!conv) {
     return NextResponse.json({ error: 'Conversation not found' }, { status: 404 })
   }
+
+  // Resolve config: prefer request params, fall back to stored conversation config
+  const essayMode = parsed.data.essayMode ?? conv.essayMode ?? false
+  const responseLength = parsed.data.responseLength ?? conv.responseLength ?? undefined
 
   // Resolve API key: BYOK first, then platform key for subscribers
   const session = await auth()
@@ -57,11 +63,6 @@ export async function POST(request: Request) {
 
   console.log(`[respond] Key resolved: model=${modelKey} provider=${config.provider} source=${keySource}`)
 
-  // Validate round
-  if (round !== 1 && round !== 2) {
-    return NextResponse.json({ error: 'round must be 1 or 2' }, { status: 400 })
-  }
-
   // Fetch R1 responses if round 2
   let round1Responses: Round1Response[] | undefined
   if (round === 2) {
@@ -82,7 +83,7 @@ export async function POST(request: Request) {
   const callModel = async () => {
     return generateText({
       model: getModelProvider(modelKey, apiKey),
-      system: buildSystemPrompt(round as 1 | 2, essayMode !== false, config.systemPrompt, responseLength),
+      system: buildSystemPrompt(round as 1 | 2, essayMode === true, config.systemPrompt, responseLength),
       prompt,
       ...(config.providerOptions && { providerOptions: config.providerOptions }),
       ...(searchConfig.providerOptions && {
