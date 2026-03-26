@@ -5,8 +5,8 @@ import { conversations, responses, userApiKeys, users } from '@/db/schema'
 import { getModelProvider, getSearchConfig, MODEL_CONFIGS, calculateCost } from '@/lib/models'
 import { extractSources } from '@/lib/sources'
 import { buildUserPrompt, buildSystemPrompt } from '@/lib/orchestrator'
+import type { ResponseLength, Round1Response } from '@/lib/orchestrator'
 import { RespondRequestSchema } from '@/lib/validation'
-import type { Round1Response } from '@/lib/orchestrator'
 import { eq, and } from 'drizzle-orm'
 import { randomUUID } from 'crypto'
 import { auth } from '@/lib/auth-config'
@@ -35,7 +35,7 @@ export async function POST(request: Request) {
 
   // Resolve config: prefer request params, fall back to stored conversation config
   const essayMode = parsed.data.essayMode ?? conv.essayMode ?? false
-  const responseLength = parsed.data.responseLength ?? conv.responseLength ?? undefined
+  const responseLength: ResponseLength | undefined = parsed.data.responseLength ?? (conv.responseLength as ResponseLength) ?? undefined
 
   // Resolve API key: BYOK first, then platform key for subscribers
   const session = await auth()

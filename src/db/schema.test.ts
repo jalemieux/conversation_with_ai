@@ -23,7 +23,11 @@ describe('Database Schema', () => {
         topic_type TEXT NOT NULL,
         framework TEXT NOT NULL,
         models TEXT NOT NULL,
-        user_id TEXT
+        user_id TEXT,
+        status TEXT NOT NULL DEFAULT 'draft',
+        essay_mode INTEGER NOT NULL DEFAULT 0,
+        response_length TEXT NOT NULL DEFAULT 'standard',
+        augmentations TEXT
       );
       CREATE TABLE responses (
         id TEXT PRIMARY KEY,
