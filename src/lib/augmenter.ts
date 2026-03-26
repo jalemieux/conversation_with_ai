@@ -65,19 +65,36 @@ export function parseMultiAugmenterResponse(text: string): MultiAugmenterResult 
     cleaned = cleaned.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '')
   }
 
-  const parsed = JSON.parse(cleaned)
+  let parsed: Record<string, unknown>
+  try {
+    parsed = JSON.parse(cleaned)
+  } catch {
+    throw new Error('Failed to parse augmenter response as JSON')
+  }
+
+  if (!parsed.augmentations || typeof parsed.augmentations !== 'object') {
+    throw new Error('Augmenter response missing augmentations object')
+  }
 
   const augmentations: AugmentationsMap = {} as AugmentationsMap
   for (const type of TOPIC_TYPES) {
-    const entry = parsed.augmentations[type]
+    const entry = (parsed.augmentations as Record<string, { framework?: string; augmented_prompt?: string }>)[type]
+    if (!entry || !entry.framework || !entry.augmented_prompt) {
+      throw new Error(`Augmenter response missing or incomplete entry for type: ${type}`)
+    }
     augmentations[type] = {
       framework: entry.framework,
       augmentedPrompt: entry.augmented_prompt,
     }
   }
 
+  const recommended = parsed.recommended as string
+  if (!TOPIC_TYPES.includes(recommended as TopicType)) {
+    throw new Error(`Invalid recommended type: ${recommended}`)
+  }
+
   return {
-    recommended: parsed.recommended as TopicType,
+    recommended: recommended as TopicType,
     augmentations,
   }
 }
