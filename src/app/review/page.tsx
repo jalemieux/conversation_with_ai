@@ -34,7 +34,9 @@ function ReviewContent() {
 
   const [rawInput, setRawInput] = useState(initialRawInput)
   const [availableModels, setAvailableModels] = useState<string[]>(Object.keys(MODEL_CONFIGS))
-  const [selectedModels, setSelectedModels] = useState<string[]>(Object.keys(MODEL_CONFIGS))
+  const defaultCounts: Record<string, number> = {}
+  for (const key of Object.keys(MODEL_CONFIGS)) defaultCounts[key] = 1
+  const [modelCounts, setModelCounts] = useState<Record<string, number>>(defaultCounts)
 
   useEffect(() => {
     fetch('/api/user')
@@ -42,7 +44,9 @@ function ReviewContent() {
       .then(data => {
         if (data.subscriptionStatus === 'active') {
           setAvailableModels(Object.keys(MODEL_CONFIGS))
-          setSelectedModels(Object.keys(MODEL_CONFIGS))
+          const counts: Record<string, number> = {}
+          for (const key of Object.keys(MODEL_CONFIGS)) counts[key] = 1
+          setModelCounts(counts)
         } else if (data.providers?.length > 0) {
           const providerToModels: Record<string, string[]> = {}
           for (const [key, config] of Object.entries(MODEL_CONFIGS)) {
@@ -51,17 +55,24 @@ function ReviewContent() {
           }
           const available = [...new Set<string>(data.providers.flatMap((p: string) => providerToModels[p] || []))]
           setAvailableModels(available)
-          setSelectedModels(available)
+          const counts: Record<string, number> = {}
+          for (const key of available) counts[key] = 1
+          setModelCounts(counts)
         }
       })
       .catch(() => {})
   }, [])
 
-  const toggleModel = (key: string) => {
-    setSelectedModels((prev) =>
-      prev.includes(key) ? prev.filter((m) => m !== key) : [...prev, key]
-    )
+  const MAX_PER_MODEL = 3
+  const adjustCount = (key: string, delta: number) => {
+    setModelCounts((prev) => {
+      const current = prev[key] ?? 0
+      const next = Math.max(0, Math.min(MAX_PER_MODEL, current + delta))
+      return { ...prev, [key]: next }
+    })
   }
+
+  const totalSelected = Object.values(modelCounts).reduce((sum, n) => sum + n, 0)
 
   const augmentations: AugmentationsMap = useMemo(() => {
     try {
@@ -117,12 +128,19 @@ function ReviewContent() {
   }
 
   const handleRun = () => {
+    // Expand counts into instance keys: { gpt: 2, claude: 1 } → gpt:0,gpt:1,claude:0
+    const instanceKeys: string[] = []
+    for (const [key, count] of Object.entries(modelCounts)) {
+      for (let i = 0; i < count; i++) {
+        instanceKeys.push(`${key}:${i}`)
+      }
+    }
     const params = new URLSearchParams({
       rawInput,
       augmentedPrompt,
       topicType: selectedType,
       framework: currentFramework,
-      models: selectedModels.join(','),
+      models: instanceKeys.join(','),
       essayMode: String(essayMode),
       responseLength,
     })
@@ -174,23 +192,25 @@ function ReviewContent() {
       </div>
 
       <div className="animate-fade-up stagger-3 mb-6">
-        <p className="text-xs font-medium tracking-widest uppercase text-ink-faint mb-3">Panel</p>
+        <div className="flex items-center gap-3 mb-3">
+          <p className="text-xs font-medium tracking-widest uppercase text-ink-faint">Panel</p>
+          <span className="text-xs text-ink-faint">{totalSelected} response{totalSelected !== 1 ? 's' : ''} total</span>
+        </div>
         <div className="flex gap-2.5 flex-wrap">
           {Object.entries(MODEL_CONFIGS).map(([key, config]) => {
             const available = availableModels.includes(key)
-            const active = available && selectedModels.includes(key)
+            const count = modelCounts[key] ?? 0
+            const active = available && count > 0
             const colors = MODEL_COLORS[key] ?? { dot: 'bg-amber', activeBg: 'bg-amber-faint', activeBorder: 'border-amber/30', activeText: 'text-amber' }
             return (
-              <button
+              <div
                 key={key}
-                onClick={() => available && toggleModel(key)}
-                disabled={!available}
                 className={`inline-flex items-center gap-2.5 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 border ${
                   !available
-                    ? 'bg-cream-dark/20 border-border/50 text-ink-faint/40 cursor-not-allowed opacity-50'
+                    ? 'bg-cream-dark/20 border-border/50 text-ink-faint/40 opacity-50'
                     : active
-                      ? `${colors.activeBg} ${colors.activeBorder} ${colors.activeText} cursor-pointer`
-                      : 'bg-cream-dark/40 border-border text-ink-faint hover:text-ink-muted hover:border-border-strong cursor-pointer'
+                      ? `${colors.activeBg} ${colors.activeBorder} ${colors.activeText}`
+                      : 'bg-cream-dark/40 border-border text-ink-faint'
                 }`}
               >
                 <span className={`w-2.5 h-2.5 rounded-full transition-all duration-200 ${colors.dot} ${active ? 'opacity-100' : 'opacity-20'}`} />
@@ -198,7 +218,28 @@ function ReviewContent() {
                   <span>{config.name}</span>
                   <span className={`text-[10px] font-normal ${active ? 'opacity-60' : 'opacity-40'}`}>{config.modelId}</span>
                 </span>
-              </button>
+                {available && (
+                  <span className="inline-flex items-center gap-1 ml-1">
+                    <button
+                      aria-label={`Decrease ${config.name} count`}
+                      onClick={() => adjustCount(key, -1)}
+                      disabled={count <= 0}
+                      className="w-6 h-6 flex items-center justify-center rounded text-xs font-bold bg-card border border-border hover:border-border-strong disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
+                    >
+                      −
+                    </button>
+                    <span className="w-5 text-center text-xs tabular-nums" data-testid={`count-${key}`}>{count}</span>
+                    <button
+                      aria-label={`Increase ${config.name} count`}
+                      onClick={() => adjustCount(key, 1)}
+                      disabled={count >= MAX_PER_MODEL}
+                      className="w-6 h-6 flex items-center justify-center rounded text-xs font-bold bg-card border border-border hover:border-border-strong disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
+                    >
+                      +
+                    </button>
+                  </span>
+                )}
+              </div>
             )
           })}
         </div>
@@ -281,7 +322,7 @@ function ReviewContent() {
         </button>
         <button
           onClick={handleRun}
-          disabled={selectedModels.length === 0}
+          disabled={totalSelected === 0}
           className="flex-1 py-3 bg-amber text-white hover:bg-amber-light disabled:bg-cream-dark disabled:text-ink-faint rounded-xl font-medium transition-all duration-200 active:scale-[0.995]"
         >
           Run Conversation

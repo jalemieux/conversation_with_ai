@@ -104,6 +104,12 @@ If tools or external checks are available, use them proactively.
   },
 }
 
+/** Extract the base model key from an instance key, e.g. 'gpt:1' → 'gpt' */
+export function baseModel(instanceKey: string): string {
+  const idx = instanceKey.indexOf(':')
+  return idx === -1 ? instanceKey : instanceKey.slice(0, idx)
+}
+
 export function getModelProvider(modelKey: string, apiKey?: string): LanguageModel {
   const config = MODEL_CONFIGS[modelKey]
   if (!config) throw new Error(`Unknown model: ${modelKey}`)

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { MODEL_CONFIGS, getModelProvider, getDefaultModels, getSearchConfig } from './models'
+import { MODEL_CONFIGS, getModelProvider, getDefaultModels, getSearchConfig, baseModel } from './models'
 
 describe('Model Configuration', () => {
   it('should have 4 model configs', () => {
@@ -56,5 +56,22 @@ describe('getSearchConfig', () => {
   it('should return empty config for unknown model', () => {
     const config = getSearchConfig('unknown')
     expect(config).toEqual({})
+  })
+})
+
+describe('baseModel', () => {
+  it('should extract model key from instance key', () => {
+    expect(baseModel('gpt:0')).toBe('gpt')
+    expect(baseModel('gpt:1')).toBe('gpt')
+    expect(baseModel('claude:0')).toBe('claude')
+  })
+
+  it('should return the key as-is when no instance suffix', () => {
+    expect(baseModel('gpt')).toBe('gpt')
+    expect(baseModel('claude')).toBe('claude')
+  })
+
+  it('should handle edge cases', () => {
+    expect(baseModel('')).toBe('')
   })
 })

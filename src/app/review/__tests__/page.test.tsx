@@ -93,6 +93,68 @@ describe('ReviewPage', () => {
     expect(hrefSpy).toHaveBeenCalledWith(expect.stringContaining('essayMode=true'))
   })
 
+  it('defaults each model count to 1 and sends instance keys', () => {
+    render(<ReviewPage />)
+    // All 4 models should default to count 1
+    for (const key of ['claude', 'gpt', 'gemini', 'grok']) {
+      expect(screen.getByTestId(`count-${key}`)).toHaveTextContent('1')
+    }
+    fireEvent.click(screen.getByText('Run Conversation'))
+    const url = hrefSpy.mock.calls[0]?.[0] as string
+    const params = new URLSearchParams(url.split('?')[1])
+    const models = params.get('models')?.split(',') ?? []
+    expect(models).toContain('claude:0')
+    expect(models).toContain('gpt:0')
+    expect(models).toContain('gemini:0')
+    expect(models).toContain('grok:0')
+  })
+
+  it('increases model count and generates multiple instance keys', () => {
+    render(<ReviewPage />)
+    // Click + for GPT twice to get count to 3
+    const increaseGpt = screen.getByLabelText('Increase GPT count')
+    fireEvent.click(increaseGpt)
+    fireEvent.click(increaseGpt)
+    expect(screen.getByTestId('count-gpt')).toHaveTextContent('3')
+
+    fireEvent.click(screen.getByText('Run Conversation'))
+    const url = hrefSpy.mock.calls[0]?.[0] as string
+    const params = new URLSearchParams(url.split('?')[1])
+    const models = params.get('models')?.split(',') ?? []
+    expect(models.filter(m => m.startsWith('gpt:'))).toHaveLength(3)
+    expect(models).toContain('gpt:0')
+    expect(models).toContain('gpt:1')
+    expect(models).toContain('gpt:2')
+  })
+
+  it('decreases model count to 0 and excludes from URL', () => {
+    render(<ReviewPage />)
+    const decreaseClaude = screen.getByLabelText('Decrease Claude count')
+    fireEvent.click(decreaseClaude)
+    expect(screen.getByTestId('count-claude')).toHaveTextContent('0')
+
+    fireEvent.click(screen.getByText('Run Conversation'))
+    const url = hrefSpy.mock.calls[0]?.[0] as string
+    const params = new URLSearchParams(url.split('?')[1])
+    const models = params.get('models')?.split(',') ?? []
+    expect(models.filter(m => m.startsWith('claude:'))).toHaveLength(0)
+  })
+
+  it('disables Run when all counts are 0', () => {
+    render(<ReviewPage />)
+    // Set all to 0
+    for (const name of ['Claude', 'GPT', 'Gemini', 'Grok']) {
+      fireEvent.click(screen.getByLabelText(`Decrease ${name} count`))
+    }
+    expect(screen.getByText('Run Conversation')).toBeDisabled()
+  })
+
+  it('shows total response count', () => {
+    render(<ReviewPage />)
+    // Default: 4 models × 1 = 4 total
+    expect(screen.getByText('4 responses total')).toBeInTheDocument()
+  })
+
   it('deduplicates models when API returns duplicate providers', async () => {
     const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
       json: async () => ({
@@ -108,13 +170,12 @@ describe('ReviewPage', () => {
     })
 
     // After fetch resolves, run the conversation and check the models param
-    // Wait for state to settle after the fetch
     await waitFor(() => {
       fireEvent.click(screen.getByText('Run Conversation'))
       const url = hrefSpy.mock.calls[0]?.[0] as string
       const params = new URLSearchParams(url.split('?')[1])
       const models = params.get('models')?.split(',') ?? []
-      // Should have no duplicates — gpt and gemini only once each
+      // Should have no duplicates — gpt:0 and gemini:0 only
       expect(models).toEqual([...new Set(models)])
     })
 

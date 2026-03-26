@@ -9,6 +9,7 @@ import { AudioPlayer } from '@/components/AudioPlayer'
 import { CopyButton } from '@/components/CopyButton'
 import { ShareButton } from '@/components/ShareButton'
 import { trackEvent } from '@/lib/analytics'
+import { baseModel } from '@/lib/models'
 
 interface ModelResponse {
   round: number
@@ -64,11 +65,12 @@ function ConversationContent() {
   const modelsRef = useRef<string[]>([])
   const tts = useTTS()
 
-  const models = [...new Set((searchParams.get('models') ?? '').split(',').filter(Boolean))]
+  const models = (searchParams.get('models') ?? '').split(',').filter(Boolean)
   const essayMode = searchParams.get('essayMode') === 'true'
   const responseLength = searchParams.get('responseLength') ?? undefined
 
-  const callModel = useCallback(async (convId: string, modelKey: string, round: number, attempt = 0): Promise<ModelResponse> => {
+  const callModel = useCallback(async (convId: string, instanceKey: string, round: number, attempt = 0): Promise<ModelResponse> => {
+    const modelKey = baseModel(instanceKey)
     const MAX_RETRIES = 1
     try {
       const res = await fetch('/api/conversation/respond', {
@@ -94,7 +96,7 @@ function ConversationContent() {
       if (attempt < MAX_RETRIES) {
         console.warn(`[callModel] Retrying ${modelKey} round ${round} (attempt ${attempt + 1}):`, err instanceof Error ? err.message : err)
         await new Promise(r => setTimeout(r, 3000))
-        return callModel(convId, modelKey, round, attempt + 1)
+        return callModel(convId, instanceKey, round, attempt + 1)
       }
       throw err
     }
@@ -115,29 +117,32 @@ function ConversationContent() {
 
     modelsRef.current = models
 
-    // Initialize round 1 loading states
+    // Initialize round 1 loading states using instance keys
     const initialStates: Record<string, ModelState> = {}
     models.forEach((m) => { initialStates[m] = { loading: true, error: null, response: null } })
     setRound1States(initialStates)
+
+    // Deduplicate base model keys for backend storage
+    const baseModels = [...new Set(models.map(baseModel))]
 
     // Create conversation, then fire parallel model calls
     fetch('/api/conversation', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ rawInput, augmentedPrompt, topicType, framework, models }),
+      body: JSON.stringify({ rawInput, augmentedPrompt, topicType, framework, models: baseModels }),
     })
       .then((res) => res.json())
       .then(({ conversationId: convId }) => {
         setConversationId(convId)
         window.history.replaceState(null, '', `/conversation/${convId}`)
 
-        // Fire all Round 1 calls in parallel
-        models.forEach((modelKey) => {
-          callModel(convId, modelKey, 1)
+        // Fire all Round 1 calls in parallel (one per instance key)
+        models.forEach((instanceKey) => {
+          callModel(convId, instanceKey, 1)
             .then((response) => {
-              setRound1States((prev) => ({ ...prev, [modelKey]: { loading: false, error: null, response } }))
+              setRound1States((prev) => ({ ...prev, [instanceKey]: { loading: false, error: null, response } }))
               trackEvent('model_response', {
-                model: modelKey,
+                model: baseModel(instanceKey),
                 round: 1,
                 input_tokens: response.usage?.inputTokens ?? 0,
                 output_tokens: response.usage?.outputTokens ?? 0,
@@ -145,7 +150,7 @@ function ConversationContent() {
               })
             })
             .catch((err) => {
-              setRound1States((prev) => ({ ...prev, [modelKey]: { loading: false, error: err.message, response: null } }))
+              setRound1States((prev) => ({ ...prev, [instanceKey]: { loading: false, error: err.message, response: null } }))
             })
         })
       })
@@ -161,12 +166,12 @@ function ConversationContent() {
     modelsRef.current.forEach((m) => { initialStates[m] = { loading: true, error: null, response: null } })
     setRound2States(initialStates)
 
-    modelsRef.current.forEach((modelKey) => {
-      callModel(conversationId, modelKey, 2)
+    modelsRef.current.forEach((instanceKey) => {
+      callModel(conversationId, instanceKey, 2)
         .then((response) => {
-          setRound2States((prev) => ({ ...prev, [modelKey]: { loading: false, error: null, response } }))
+          setRound2States((prev) => ({ ...prev, [instanceKey]: { loading: false, error: null, response } }))
           trackEvent('model_response', {
-            model: modelKey,
+            model: baseModel(instanceKey),
             round: 2,
             input_tokens: response.usage?.inputTokens ?? 0,
             output_tokens: response.usage?.outputTokens ?? 0,
@@ -174,7 +179,7 @@ function ConversationContent() {
           })
         })
         .catch((err) => {
-          setRound2States((prev) => ({ ...prev, [modelKey]: { loading: false, error: err.message, response: null } }))
+          setRound2States((prev) => ({ ...prev, [instanceKey]: { loading: false, error: err.message, response: null } }))
         })
     })
   }
@@ -233,15 +238,18 @@ function ConversationContent() {
 
   const activeKey = tts.playingKey || tts.pausedKey || tts.loadingKey
   const activeModelName = activeKey ? (() => {
-    const model = activeKey.split('-').slice(1).join('-')
-    const responses = [...Object.values(round1States), ...Object.values(round2States)]
-      .filter((s) => s.response)
-      .map((s) => s.response!)
-    const match = responses.find((r) => `${r.round}-${r.model}` === activeKey)
-    return match?.modelName ?? model
+    // TTS key format: round-instanceKey (e.g. "1-gpt:0")
+    const dashIdx = activeKey.indexOf('-')
+    const instanceKey = dashIdx >= 0 ? activeKey.slice(dashIdx + 1) : activeKey
+    const round1Match = round1States[instanceKey]?.response
+    const round2Match = round2States[instanceKey]?.response
+    const match = round1Match ?? round2Match
+    return match?.modelName ?? baseModel(instanceKey)
   })() : undefined
 
-  const ResponseCard = ({ r }: { r: ModelResponse }) => (
+  const ResponseCard = ({ r, instanceKey }: { r: ModelResponse; instanceKey: string }) => {
+    const ttsKey = `${r.round}-${instanceKey}`
+    return (
     <details open className="bg-card border border-border rounded-xl overflow-hidden animate-fade-up">
       <summary className="px-5 py-4 cursor-pointer select-none hover:bg-card-hover transition-colors flex items-center gap-3">
         <span className={`w-2 h-2 rounded-full flex-shrink-0 ${getDot(r.model, r.round)}`} />
@@ -255,8 +263,8 @@ function ConversationContent() {
         <span className="ml-auto flex items-center">
           <CopyButton content={r.content} model={r.model} />
           <SpeakerButton
-            state={getSpeakerState(`${r.round}-${r.model}`)}
-            onClick={() => tts.toggle(`${r.round}-${r.model}`, r.content, r.model, conversationId ?? undefined, r.round)}
+            state={getSpeakerState(ttsKey)}
+            onClick={() => tts.toggle(ttsKey, r.content, r.model, conversationId ?? undefined, r.round)}
             model={r.model}
           />
         </span>
@@ -287,41 +295,47 @@ function ConversationContent() {
         )}
       </div>
     </details>
-  )
+  )}
 
-  const LoadingCard = ({ modelKey, round }: { modelKey: string; round: number }) => (
-    <div className="bg-card border border-border rounded-xl overflow-hidden animate-fade-up px-5 py-4 flex items-center gap-3">
-      <span className={`w-2 h-2 rounded-full flex-shrink-0 ${getDot(modelKey, round)}`} />
-      <span className={`font-medium ${getAccent(modelKey, round)}`}>{modelKey}</span>
-      <span className="ml-auto w-4 h-4 border-2 border-ink-faint/30 border-t-amber rounded-full animate-spin" />
-    </div>
-  )
+  const LoadingCard = ({ instanceKey, round }: { instanceKey: string; round: number }) => {
+    const model = baseModel(instanceKey)
+    return (
+      <div className="bg-card border border-border rounded-xl overflow-hidden animate-fade-up px-5 py-4 flex items-center gap-3">
+        <span className={`w-2 h-2 rounded-full flex-shrink-0 ${getDot(model, round)}`} />
+        <span className={`font-medium ${getAccent(model, round)}`}>{model}</span>
+        <span className="ml-auto w-4 h-4 border-2 border-ink-faint/30 border-t-amber rounded-full animate-spin" />
+      </div>
+    )
+  }
 
-  const retryModel = (modelKey: string, round: number) => {
+  const retryModel = (instanceKey: string, round: number) => {
     const setStates = round === 1 ? setRound1States : setRound2States
-    setStates((prev) => ({ ...prev, [modelKey]: { loading: true, error: null, response: null } }))
-    callModel(conversationId!, modelKey, round)
+    setStates((prev) => ({ ...prev, [instanceKey]: { loading: true, error: null, response: null } }))
+    callModel(conversationId!, instanceKey, round)
       .then((response) => {
-        setStates((prev) => ({ ...prev, [modelKey]: { loading: false, error: null, response } }))
+        setStates((prev) => ({ ...prev, [instanceKey]: { loading: false, error: null, response } }))
       })
       .catch((err) => {
-        setStates((prev) => ({ ...prev, [modelKey]: { loading: false, error: err.message, response: null } }))
+        setStates((prev) => ({ ...prev, [instanceKey]: { loading: false, error: err.message, response: null } }))
       })
   }
 
-  const ErrorCard = ({ modelKey, message, round }: { modelKey: string; message: string; round: number }) => (
-    <div className="bg-danger/5 border border-danger/20 rounded-xl overflow-hidden animate-fade-up px-5 py-4 flex items-center gap-3">
-      <span className={`w-2 h-2 rounded-full flex-shrink-0 ${getDot(modelKey, round)}`} />
-      <span className={`font-medium ${getAccent(modelKey, round)}`}>{modelKey}</span>
-      <span className="text-danger text-sm ml-2">{message}</span>
-      <button
-        onClick={() => retryModel(modelKey, round)}
-        className="ml-auto px-3 py-1 text-xs font-medium bg-card border border-border hover:border-border-strong rounded-lg transition-colors cursor-pointer text-ink-muted hover:text-ink"
-      >
-        Retry
-      </button>
-    </div>
-  )
+  const ErrorCard = ({ instanceKey, message, round }: { instanceKey: string; message: string; round: number }) => {
+    const model = baseModel(instanceKey)
+    return (
+      <div className="bg-danger/5 border border-danger/20 rounded-xl overflow-hidden animate-fade-up px-5 py-4 flex items-center gap-3">
+        <span className={`w-2 h-2 rounded-full flex-shrink-0 ${getDot(model, round)}`} />
+        <span className={`font-medium ${getAccent(model, round)}`}>{model}</span>
+        <span className="text-danger text-sm ml-2">{message}</span>
+        <button
+          onClick={() => retryModel(instanceKey, round)}
+          className="ml-auto px-3 py-1 text-xs font-medium bg-card border border-border hover:border-border-strong rounded-lg transition-colors cursor-pointer text-ink-muted hover:text-ink"
+        >
+          Retry
+        </button>
+      </div>
+    )
+  }
 
   return (
     <div>
@@ -355,12 +369,12 @@ function ConversationContent() {
             <div className="flex-1 h-px bg-border" />
           </div>
           <div className="space-y-3">
-            {modelsRef.current.map((modelKey) => {
-              const state = round1States[modelKey]
+            {modelsRef.current.map((instanceKey) => {
+              const state = round1States[instanceKey]
               if (!state) return null
-              if (state.response) return <ResponseCard key={modelKey} r={state.response} />
-              if (state.error) return <ErrorCard key={modelKey} modelKey={modelKey} message={state.error} round={1} />
-              return <LoadingCard key={modelKey} modelKey={modelKey} round={1} />
+              if (state.response) return <ResponseCard key={instanceKey} r={state.response} instanceKey={instanceKey} />
+              if (state.error) return <ErrorCard key={instanceKey} instanceKey={instanceKey} message={state.error} round={1} />
+              return <LoadingCard key={instanceKey} instanceKey={instanceKey} round={1} />
             })}
           </div>
         </div>
@@ -373,12 +387,12 @@ function ConversationContent() {
             <div className="flex-1 h-px bg-border" />
           </div>
           <div className="space-y-3">
-            {modelsRef.current.map((modelKey) => {
-              const state = round2States[modelKey]
+            {modelsRef.current.map((instanceKey) => {
+              const state = round2States[instanceKey]
               if (!state) return null
-              if (state.response) return <ResponseCard key={modelKey} r={state.response} />
-              if (state.error) return <ErrorCard key={modelKey} modelKey={modelKey} message={state.error} round={2} />
-              return <LoadingCard key={modelKey} modelKey={modelKey} round={2} />
+              if (state.response) return <ResponseCard key={instanceKey} r={state.response} instanceKey={instanceKey} />
+              if (state.error) return <ErrorCard key={instanceKey} instanceKey={instanceKey} message={state.error} round={2} />
+              return <LoadingCard key={instanceKey} instanceKey={instanceKey} round={2} />
             })}
           </div>
         </div>
