@@ -1,15 +1,31 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useParams } from 'next/navigation'
-import { MODEL_CONFIGS } from '@/lib/models'
+import { Suspense, useState, useEffect, useRef, useCallback, use } from 'react'
 import MarkdownContent from '@/components/MarkdownContent'
 import { useTTS } from '@/hooks/useTTS'
 import { SpeakerButton } from '@/components/SpeakerButton'
 import { AudioPlayer } from '@/components/AudioPlayer'
 import { CopyButton } from '@/components/CopyButton'
 import { ShareButton } from '@/components/ShareButton'
-import type { Conversation } from '@/lib/types'
+import { trackEvent } from '@/lib/analytics'
+import { baseModel, MODEL_CONFIGS } from '@/lib/models'
+
+interface ModelResponse {
+  round: number
+  model: string
+  modelName: string
+  provider: string
+  modelId: string
+  content: string
+  sources?: { url: string; title: string }[]
+  usage?: { inputTokens: number; outputTokens: number; cost: number }
+}
+
+interface ModelState {
+  loading: boolean
+  error: string | null
+  response: ModelResponse | null
+}
 
 const MODEL_ACCENT: Record<string, string> = {
   claude: 'text-claude',
@@ -36,39 +52,199 @@ function formatCost(cost: number): string {
   return `$${cost.toFixed(2)}`
 }
 
-export default function ConversationDetailPage() {
-  const params = useParams()
-  const [conversation, setConversation] = useState<Conversation | null>(null)
+function ConversationContent({ conversationId }: { conversationId: string }) {
+  const [round1States, setRound1States] = useState<Record<string, ModelState>>({})
+  const [round2States, setRound2States] = useState<Record<string, ModelState>>({})
+  const [round2Started, setRound2Started] = useState(false)
+  const [topic, setTopic] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [isOwner, setIsOwner] = useState(false)
+  const [pageLoading, setPageLoading] = useState(true)
+  const startedRef = useRef(false)
+  const modelsRef = useRef<string[]>([])
   const tts = useTTS()
 
+  const callModel = useCallback(async (convId: string, instanceKey: string, round: number, attempt = 0): Promise<ModelResponse> => {
+    const modelKey = baseModel(instanceKey)
+    const MAX_RETRIES = 1
+    try {
+      const res = await fetch('/api/conversation/respond', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ conversationId: convId, model: modelKey, round }),
+      })
+      if (!res.ok) {
+        let message = `Request failed (${res.status})`
+        try {
+          const err = await res.json()
+          if (err.error) message = err.error
+        } catch {
+          const text = await res.text().catch(() => '')
+          if (text) console.error(`[callModel] Non-JSON ${res.status} for ${modelKey}:`, text.slice(0, 200))
+        }
+        throw new Error(message)
+      }
+      return await res.json()
+    } catch (err) {
+      if (attempt < MAX_RETRIES) {
+        console.warn(`[callModel] Retrying ${modelKey} round ${round} (attempt ${attempt + 1}):`, err instanceof Error ? err.message : err)
+        await new Promise(r => setTimeout(r, 3000))
+        return callModel(convId, instanceKey, round, attempt + 1)
+      }
+      throw err
+    }
+  }, [])
+
+  const fireRound = useCallback((convId: string, instanceKeys: string[], round: number, setStates: React.Dispatch<React.SetStateAction<Record<string, ModelState>>>) => {
+    const initialStates: Record<string, ModelState> = {}
+    instanceKeys.forEach((m) => { initialStates[m] = { loading: true, error: null, response: null } })
+    setStates(initialStates)
+
+    instanceKeys.forEach((instanceKey) => {
+      callModel(convId, instanceKey, round)
+        .then((response) => {
+          setStates((prev) => ({ ...prev, [instanceKey]: { loading: false, error: null, response } }))
+          trackEvent('model_response', {
+            model: baseModel(instanceKey),
+            round,
+            input_tokens: response.usage?.inputTokens ?? 0,
+            output_tokens: response.usage?.outputTokens ?? 0,
+            cost: response.usage?.cost ?? 0,
+          })
+        })
+        .catch((err) => {
+          setStates((prev) => ({ ...prev, [instanceKey]: { loading: false, error: err.message, response: null } }))
+        })
+    })
+  }, [callModel])
+
   useEffect(() => {
-    fetch(`/api/conversations/${params.id}`)
-      .then((r) => {
-        if (!r.ok) throw new Error('Not found')
+    if (startedRef.current) return
+    startedRef.current = true
+
+    fetch(`/api/conversations/${conversationId}`)
+      .then(r => {
+        if (!r.ok) throw new Error('Conversation not found')
         return r.json()
       })
-      .then(setConversation)
-      .catch((e) => setError(e.message))
-  }, [params.id])
+      .then(conv => {
+        setTopic(conv.augmentedPrompt)
+        setIsOwner(conv.isOwner ?? false)
 
-  if (error) {
-    return <div className="text-danger">Error: {error}</div>
+        // If conversation already has responses, display them (reload-safe)
+        if (conv.responses && conv.responses.length > 0) {
+          const r1: Record<string, ModelState> = {}
+          const r2: Record<string, ModelState> = {}
+          const instanceKeysSet = new Set<string>()
+
+          for (const resp of conv.responses) {
+            const instanceKey = `${resp.model}:0`
+            instanceKeysSet.add(instanceKey)
+            const config = MODEL_CONFIGS[resp.model]
+            const state: ModelState = {
+              loading: false,
+              error: null,
+              response: {
+                round: resp.round,
+                model: resp.model,
+                modelName: config?.name ?? resp.model,
+                provider: config?.provider ?? '',
+                modelId: config?.modelId ?? '',
+                content: resp.content,
+                sources: resp.sources,
+                usage: resp.usage,
+              },
+            }
+            if (resp.round === 1) r1[instanceKey] = state
+            else r2[instanceKey] = state
+          }
+
+          modelsRef.current = [...instanceKeysSet]
+          setRound1States(r1)
+          if (Object.keys(r2).length > 0) {
+            setRound2States(r2)
+            setRound2Started(true)
+          }
+          setPageLoading(false)
+          return
+        }
+
+        // No responses yet — fire model calls if status is running
+        if (conv.status !== 'running') {
+          setError('This conversation has not been started yet')
+          setPageLoading(false)
+          return
+        }
+
+        const models: string[] = conv.models ?? []
+        const instanceKeys: string[] = []
+        const modelCounts: Record<string, number> = {}
+        for (const m of models) {
+          const count = modelCounts[m] ?? 0
+          instanceKeys.push(`${m}:${count}`)
+          modelCounts[m] = count + 1
+        }
+
+        modelsRef.current = instanceKeys
+        fireRound(conversationId, instanceKeys, 1, setRound1States)
+        setPageLoading(false)
+      })
+      .catch(err => {
+        setError(err.message)
+        setPageLoading(false)
+      })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const startRound2 = () => {
+    setRound2Started(true)
+    fireRound(conversationId, modelsRef.current, 2, setRound2States)
   }
 
-  if (!conversation) {
-    return (
-      <div className="text-center py-16">
-        <span className="w-5 h-5 border-2 border-ink-faint/30 border-t-amber rounded-full animate-spin inline-block" />
-      </div>
-    )
+  const round1Responses = Object.values(round1States).filter((s) => s.response).map((s) => s.response!)
+  const round1Loading = Object.values(round1States).some((s) => s.loading)
+  const round1Done = Object.keys(round1States).length > 0 && !round1Loading
+  const round2Loading = Object.values(round2States).some((s) => s.loading)
+  const round2Done = round2Started && !round2Loading
+  const allDone = round1Done && (!round2Started || round2Done)
+
+  const round1TrackedRef = useRef(false)
+  const round2TrackedRef = useRef(false)
+
+  useEffect(() => {
+    if (round1Done && !round1TrackedRef.current) {
+      round1TrackedRef.current = true
+      trackEvent('round_completed', { round: 1, conversation_id: conversationId })
+    }
+  }, [round1Done, conversationId])
+
+  useEffect(() => {
+    if (round2Done && !round2TrackedRef.current) {
+      round2TrackedRef.current = true
+      trackEvent('round_completed', { round: 2, conversation_id: conversationId })
+      const allResponses = [
+        ...Object.values(round1States),
+        ...Object.values(round2States),
+      ].filter((s) => s.response).map((s) => s.response!)
+      const totalCost = allResponses.reduce((sum, r) => sum + (r.usage?.cost ?? 0), 0)
+      const totalTokens = allResponses.reduce((sum, r) => sum + (r.usage?.inputTokens ?? 0) + (r.usage?.outputTokens ?? 0), 0)
+      trackEvent('conversation_completed', {
+        conversation_id: conversationId,
+        total_cost: totalCost,
+        total_tokens: totalTokens,
+      })
+    }
+  }, [round2Done, conversationId, round1States, round2States])
+
+  const getAccent = (model: string, round: number) => {
+    if (round === 2) return 'text-round2'
+    return MODEL_ACCENT[model] ?? 'text-amber'
   }
 
-  const isOwner = conversation.isOwner ?? false
-  const round1 = conversation.responses.filter((r) => r.round === 1)
-  const round2 = conversation.responses.filter((r) => r.round === 2)
-
-  const getModelConfig = (key: string) => MODEL_CONFIGS[key] ?? { name: key, provider: key, modelId: key }
+  const getDot = (model: string, round: number) => {
+    if (round === 2) return 'bg-round2'
+    return MODEL_DOT[model] ?? 'bg-amber'
+  }
 
   const getSpeakerState = (key: string): 'idle' | 'loading' | 'playing' | 'error' => {
     if (tts.playingKey === key) return 'playing'
@@ -79,9 +255,105 @@ export default function ConversationDetailPage() {
 
   const activeKey = tts.playingKey || tts.pausedKey || tts.loadingKey
   const activeModelName = activeKey ? (() => {
-    const model = activeKey.split('-').slice(1).join('-')
-    return getModelConfig(model).name
+    const dashIdx = activeKey.indexOf('-')
+    const instanceKey = dashIdx >= 0 ? activeKey.slice(dashIdx + 1) : activeKey
+    const round1Match = round1States[instanceKey]?.response
+    const round2Match = round2States[instanceKey]?.response
+    const match = round1Match ?? round2Match
+    return match?.modelName ?? baseModel(instanceKey)
   })() : undefined
+
+  const retryModel = (instanceKey: string, round: number) => {
+    const setStates = round === 1 ? setRound1States : setRound2States
+    setStates((prev) => ({ ...prev, [instanceKey]: { loading: true, error: null, response: null } }))
+    callModel(conversationId, instanceKey, round)
+      .then((response) => {
+        setStates((prev) => ({ ...prev, [instanceKey]: { loading: false, error: null, response } }))
+      })
+      .catch((err) => {
+        setStates((prev) => ({ ...prev, [instanceKey]: { loading: false, error: err.message, response: null } }))
+      })
+  }
+
+  const ResponseCard = ({ r, instanceKey }: { r: ModelResponse; instanceKey: string }) => {
+    const ttsKey = `${r.round}-${instanceKey}`
+    return (
+      <details open className="bg-card border border-border rounded-xl overflow-hidden animate-fade-up">
+        <summary className="px-5 py-4 cursor-pointer select-none hover:bg-card-hover transition-colors flex items-center gap-3">
+          <span className={`w-2 h-2 rounded-full flex-shrink-0 ${getDot(r.model, r.round)}`} />
+          <span className={`font-medium ${getAccent(r.model, r.round)}`}>{r.modelName}</span>
+          <span className="text-xs text-ink-faint">{r.provider} / {r.modelId}</span>
+          {r.usage && (
+            <span className="text-xs text-ink-faint tabular-nums">
+              {formatTokens(r.usage.inputTokens)}↑ {formatTokens(r.usage.outputTokens)}↓ {formatCost(r.usage.cost)}
+            </span>
+          )}
+          <span className="ml-auto flex items-center">
+            <CopyButton content={r.content} model={r.model} />
+            {isOwner && (
+              <SpeakerButton
+                state={getSpeakerState(ttsKey)}
+                onClick={() => tts.toggle(ttsKey, r.content, r.model, conversationId, r.round)}
+                model={r.model}
+              />
+            )}
+          </span>
+        </summary>
+        <div className="px-5 pb-5 border-t border-border pt-4">
+          <MarkdownContent content={r.content} />
+          {r.sources && r.sources.length > 0 && (
+            <div className="mt-4 pt-3 border-t border-border">
+              <p className="text-xs font-medium tracking-widest uppercase text-ink-faint mb-2">Sources</p>
+              <ol className="list-decimal list-inside space-y-1">
+                {r.sources.map((s, i) => (
+                  <li key={i} className="text-xs text-ink-muted">
+                    <a href={s.url} target="_blank" rel="noopener noreferrer" className="hover:text-amber transition-colors">
+                      {s.title || new URL(s.url).hostname}
+                    </a>
+                    <span className="text-ink-faint ml-1">— {new URL(s.url).hostname}</span>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          )}
+        </div>
+      </details>
+    )
+  }
+
+  const LoadingCard = ({ instanceKey, round }: { instanceKey: string; round: number }) => {
+    const model = baseModel(instanceKey)
+    return (
+      <div className="bg-card border border-border rounded-xl overflow-hidden animate-fade-up px-5 py-4 flex items-center gap-3">
+        <span className={`w-2 h-2 rounded-full flex-shrink-0 ${getDot(model, round)}`} />
+        <span className={`font-medium ${getAccent(model, round)}`}>{model}</span>
+        <span className="ml-auto w-4 h-4 border-2 border-ink-faint/30 border-t-amber rounded-full animate-spin" />
+      </div>
+    )
+  }
+
+  const ErrorCard = ({ instanceKey, message, round }: { instanceKey: string; message: string; round: number }) => {
+    const model = baseModel(instanceKey)
+    return (
+      <div className="bg-danger/5 border border-danger/20 rounded-xl overflow-hidden animate-fade-up px-5 py-4 flex items-center gap-3">
+        <span className={`w-2 h-2 rounded-full flex-shrink-0 ${getDot(model, round)}`} />
+        <span className={`font-medium ${getAccent(model, round)}`}>{model}</span>
+        <span className="text-danger text-sm ml-2">{message}</span>
+        {isOwner && (
+          <button
+            onClick={() => retryModel(instanceKey, round)}
+            className="ml-auto px-3 py-1 text-xs font-medium bg-card border border-border hover:border-border-strong rounded-lg transition-colors cursor-pointer text-ink-muted hover:text-ink"
+          >
+            Retry
+          </button>
+        )}
+      </div>
+    )
+  }
+
+  if (pageLoading) {
+    return <div className="text-ink-faint">Loading conversation...</div>
+  }
 
   return (
     <div>
@@ -90,134 +362,101 @@ export default function ConversationDetailPage() {
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="opacity-60"><path d="M10 12L6 8L10 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
           New Conversation
         </a>
-        <ShareButton url={`${typeof window !== 'undefined' ? window.location.origin : ''}/conversation/${conversation.id}`} />
+        <ShareButton url={`${typeof window !== 'undefined' ? window.location.origin : ''}/conversation/${conversationId}`} />
       </div>
 
-      <div className="mb-10 animate-fade-up">
-        <p className="text-xs font-medium tracking-widest uppercase text-ink-faint mb-2">Topic</p>
-        <div className="border-l-2 border-amber pl-5 py-1">
-          <p className="text-ink leading-relaxed">{conversation.augmentedPrompt || conversation.rawInput}</p>
+      {topic && (
+        <div className="mb-10 animate-fade-up">
+          <p className="text-xs font-medium tracking-widest uppercase text-ink-faint mb-2">Topic</p>
+          <div className="border-l-2 border-amber pl-5 py-1">
+            <p className="text-ink leading-relaxed">{topic}</p>
+          </div>
         </div>
-      </div>
+      )}
 
-      <div className="animate-fade-up stagger-1 mb-8 flex gap-2">
-        <span className="px-2.5 py-1 bg-amber-faint text-amber rounded-lg text-xs font-medium">
-          {conversation.topicType}
-        </span>
-        <span className="px-2.5 py-1 bg-cream-dark text-ink-muted rounded-lg text-xs font-medium">
-          {conversation.framework}
-        </span>
-      </div>
+      {error && (
+        <div className="bg-danger/5 border border-danger/20 rounded-xl p-4 mb-6 text-danger animate-fade-up">
+          {error}
+        </div>
+      )}
 
-      {round1.length > 0 && (
-        <div className="mb-10 animate-fade-up stagger-2">
-          <div className="flex items-center gap-3 mb-5">
+      {Object.keys(round1States).length > 0 && (
+        <div className="mb-10">
+          <div className="flex items-center gap-3 mb-5 animate-fade-up">
             <p className="text-xs font-medium tracking-widest uppercase text-ink-faint">Round 1 — Initial Responses</p>
             <div className="flex-1 h-px bg-border" />
           </div>
           <div className="space-y-3">
-            {round1.map((r) => {
-              const config = getModelConfig(r.model)
-              const accent = MODEL_ACCENT[r.model] ?? 'text-amber'
-              const dot = MODEL_DOT[r.model] ?? 'bg-amber'
-              return (
-                <details key={r.id} open className="bg-card border border-border rounded-xl overflow-hidden">
-                  <summary className="px-5 py-4 cursor-pointer select-none hover:bg-card-hover transition-colors flex items-center gap-3">
-                    <span className={`w-2 h-2 rounded-full flex-shrink-0 ${dot}`} />
-                    <span className={`font-medium ${accent}`}>{config.name}</span>
-                    <span className="text-xs text-ink-faint">{config.provider} / {config.modelId}</span>
-                    {r.usage && (
-                      <span className="text-xs text-ink-faint tabular-nums">
-                        {formatTokens(r.usage.inputTokens)}↑ {formatTokens(r.usage.outputTokens)}↓ {formatCost(r.usage.cost)}
-                      </span>
-                    )}
-                    <span className="ml-auto flex items-center">
-                      <CopyButton content={r.content} />
-                      {isOwner && (
-                        <SpeakerButton
-                          state={getSpeakerState(`${r.round}-${r.model}`)}
-                          onClick={() => tts.toggle(`${r.round}-${r.model}`, r.content, r.model, conversation.id, r.round)}
-                        />
-                      )}
-                    </span>
-                  </summary>
-                  <div className="px-5 pb-5 border-t border-border pt-4">
-                    <MarkdownContent content={r.content} />
-                    {r.sources && r.sources.length > 0 && (
-                      <div className="mt-4 pt-3 border-t border-border">
-                        <p className="text-xs font-medium tracking-widest uppercase text-ink-faint mb-2">Sources</p>
-                        <ol className="list-decimal list-inside space-y-1">
-                          {r.sources.map((s, i) => (
-                            <li key={i} className="text-xs text-ink-muted">
-                              <a
-                                href={s.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="hover:text-amber transition-colors"
-                              >
-                                {s.title || new URL(s.url).hostname}
-                              </a>
-                              <span className="text-ink-faint ml-1">
-                                — {new URL(s.url).hostname}
-                              </span>
-                            </li>
-                          ))}
-                        </ol>
-                      </div>
-                    )}
-                  </div>
-                </details>
-              )
+            {modelsRef.current.map((instanceKey) => {
+              const state = round1States[instanceKey]
+              if (!state) return null
+              if (state.response) return <ResponseCard key={instanceKey} r={state.response} instanceKey={instanceKey} />
+              if (state.error) return <ErrorCard key={instanceKey} instanceKey={instanceKey} message={state.error} round={1} />
+              return <LoadingCard key={instanceKey} instanceKey={instanceKey} round={1} />
             })}
           </div>
         </div>
       )}
 
-      {round2.length > 0 && (
-        <div className="mb-10 animate-fade-up stagger-3">
-          <div className="flex items-center gap-3 mb-5">
+      {round2Started && (
+        <div className="mb-10">
+          <div className="flex items-center gap-3 mb-5 animate-fade-up">
             <p className="text-xs font-medium tracking-widest uppercase text-ink-faint">Round 2 — Reactions</p>
             <div className="flex-1 h-px bg-border" />
           </div>
           <div className="space-y-3">
-            {round2.map((r) => {
-              const config = getModelConfig(r.model)
-              return (
-                <details key={r.id} open className="bg-card border border-border rounded-xl overflow-hidden">
-                  <summary className="px-5 py-4 cursor-pointer select-none hover:bg-card-hover transition-colors flex items-center gap-3">
-                    <span className="w-2 h-2 rounded-full flex-shrink-0 bg-round2" />
-                    <span className="font-medium text-round2">{config.name}</span>
-                    <span className="text-xs text-ink-faint">{config.provider} / {config.modelId}</span>
-                    {r.usage && (
-                      <span className="text-xs text-ink-faint tabular-nums">
-                        {formatTokens(r.usage.inputTokens)}↑ {formatTokens(r.usage.outputTokens)}↓ {formatCost(r.usage.cost)}
-                      </span>
-                    )}
-                    <span className="ml-auto flex items-center">
-                      <CopyButton content={r.content} />
-                      {isOwner && (
-                        <SpeakerButton
-                          state={getSpeakerState(`${r.round}-${r.model}`)}
-                          onClick={() => tts.toggle(`${r.round}-${r.model}`, r.content, r.model, conversation.id, r.round)}
-                        />
-                      )}
-                    </span>
-                  </summary>
-                  <div className="px-5 pb-5 border-t border-border pt-4">
-                    <MarkdownContent content={r.content} />
-                  </div>
-                </details>
-              )
+            {modelsRef.current.map((instanceKey) => {
+              const state = round2States[instanceKey]
+              if (!state) return null
+              if (state.response) return <ResponseCard key={instanceKey} r={state.response} instanceKey={instanceKey} />
+              if (state.error) return <ErrorCard key={instanceKey} instanceKey={instanceKey} message={state.error} round={2} />
+              return <LoadingCard key={instanceKey} instanceKey={instanceKey} round={2} />
             })}
           </div>
         </div>
       )}
 
-      <div className="mt-8 animate-fade-up stagger-4 flex justify-end">
-        <ShareButton url={`${typeof window !== 'undefined' ? window.location.origin : ''}/conversation/${conversation.id}`} />
-      </div>
+      {round1Loading && (
+        <div className="text-center py-10 animate-fade-in">
+          <div className="inline-flex items-center gap-3 text-ink-muted">
+            <span className="w-5 h-5 border-2 border-ink-faint/30 border-t-amber rounded-full animate-spin" />
+            Round 1 in progress... ({round1Responses.length} of {modelsRef.current.length} responses received)
+          </div>
+        </div>
+      )}
 
-      {isOwner && activeKey && (
+      {allDone && isOwner && (
+        <div className="mt-8 animate-fade-up flex flex-wrap items-center gap-2">
+          {round1Done && !round2Started && (
+            <button
+              onClick={startRound2}
+              className="px-5 py-2.5 bg-amber text-cream hover:bg-amber-dark rounded-xl font-medium transition-all duration-200 text-sm shadow-[0_2px_8px_rgba(26,26,26,0.15)] hover:shadow-[0_2px_12px_rgba(26,26,26,0.25)] cursor-pointer"
+            >
+              Start Round 2
+            </button>
+          )}
+          <button
+            onClick={() => { window.location.href = '/' }}
+            className="px-5 py-2.5 bg-ink text-cream hover:bg-ink-light rounded-xl font-medium transition-all duration-200 text-sm shadow-[0_2px_8px_rgba(26,26,26,0.15)] hover:shadow-[0_2px_12px_rgba(26,26,26,0.25)] cursor-pointer"
+          >
+            New Conversation
+          </button>
+          <ShareButton url={`${typeof window !== 'undefined' ? window.location.origin : ''}/conversation/${conversationId}`} />
+        </div>
+      )}
+
+      {!isOwner && allDone && (
+        <div className="mt-8 animate-fade-up text-center">
+          <a
+            href="/"
+            className="inline-block px-5 py-2.5 bg-amber text-cream hover:bg-amber-dark rounded-xl font-medium transition-all duration-200 text-sm"
+          >
+            Start Your Own Conversation
+          </a>
+        </div>
+      )}
+
+      {activeKey && isOwner && (
         <AudioPlayer
           isPlaying={!!tts.playingKey}
           currentTime={tts.currentTime}
@@ -230,20 +469,15 @@ export default function ConversationDetailPage() {
           onStop={tts.stop}
         />
       )}
-
-      {!isOwner && (
-        <div className="mt-12 mb-4 border border-border rounded-xl bg-card p-6 text-center animate-fade-up">
-          <p className="text-ink leading-relaxed mb-4">
-            Explore complex questions from different angles. AI helps you frame the right question, then every frontier model responds and they critique each other&apos;s answers.
-          </p>
-          <a
-            href="/login"
-            className="inline-block px-6 py-2.5 bg-amber text-cream font-medium rounded-xl hover:brightness-110 transition-all duration-200 text-sm"
-          >
-            Get started
-          </a>
-        </div>
-      )}
     </div>
+  )
+}
+
+export default function ConversationPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params)
+  return (
+    <Suspense fallback={<div className="text-ink-faint">Loading...</div>}>
+      <ConversationContent conversationId={id} />
+    </Suspense>
   )
 }
