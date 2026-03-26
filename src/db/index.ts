@@ -108,6 +108,18 @@ function initDb(): BetterSQLite3Database<typeof schema> {
     sqlite.exec(`ALTER TABLE conversations ADD COLUMN user_id TEXT REFERENCES users(id)`)
   }
 
+  // Migration: add draft conversation support columns if missing
+  const hasStatus = sqlite.prepare(
+    `SELECT COUNT(*) as cnt FROM pragma_table_info('conversations') WHERE name = 'status'`
+  ).get() as { cnt: number }
+  if (hasStatus.cnt === 0) {
+    sqlite.exec(`ALTER TABLE conversations ADD COLUMN status TEXT NOT NULL DEFAULT 'draft'`)
+    sqlite.exec(`ALTER TABLE conversations ADD COLUMN essay_mode INTEGER NOT NULL DEFAULT 0`)
+    sqlite.exec(`ALTER TABLE conversations ADD COLUMN response_length TEXT NOT NULL DEFAULT 'standard'`)
+    sqlite.exec(`ALTER TABLE conversations ADD COLUMN augmentations TEXT`)
+    sqlite.exec(`UPDATE conversations SET status = 'completed'`)
+  }
+
   _db = drizzle(sqlite, { schema })
   return _db
 }

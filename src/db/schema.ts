@@ -10,6 +10,10 @@ export const conversations = sqliteTable('conversations', {
   framework: text('framework').notNull(),
   models: text('models').notNull(), // JSON array of model names
   userId: text('user_id').references(() => users.id),
+  status: text('status').notNull().default('draft'),
+  essayMode: integer('essay_mode', { mode: 'boolean' }).notNull().default(false),
+  responseLength: text('response_length').notNull().default('standard'),
+  augmentations: text('augmentations'),
 })
 
 export const responses = sqliteTable('responses', {
