@@ -12,6 +12,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: 'Not found' }, { status: 404 })
   }
 
+  // Public read — shared conversation links work without auth. The isOwner flag controls what the UI shows.
   const session = await auth()
   const isOwner = session?.user?.id === conv[0].userId
 
@@ -20,6 +21,10 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   return NextResponse.json({
     ...conv[0],
     models: JSON.parse(conv[0].models),
+    augmentations: conv[0].augmentations ? JSON.parse(conv[0].augmentations) : null,
+    essayMode: conv[0].essayMode ?? false,
+    responseLength: conv[0].responseLength ?? 'standard',
+    status: conv[0].status ?? 'completed',
     isOwner,
     responses: resps.map(({ inputTokens, outputTokens, cost, sources, ...rest }) => ({
       ...rest,
