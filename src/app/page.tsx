@@ -21,6 +21,7 @@ export default function Home() {
   const [rawInput, setRawInput] = useState('')
   const [recent, setRecent] = useState<RecentConversation[]>([])
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     fetch('/api/user')
@@ -30,14 +31,14 @@ export default function Home() {
           window.location.href = '/setup'
         }
       })
-      .catch(() => {})
+      .catch(() => { console.warn('[home] Failed to check user access') })
   }, [])
 
   useEffect(() => {
     fetch('/api/conversations')
       .then((r) => r.json())
       .then(setRecent)
-      .catch(() => {})
+      .catch(() => { console.warn('[home] Failed to load recent conversations') })
   }, [])
 
   const handleDelete = async (e: React.MouseEvent, id: string) => {
@@ -51,17 +52,18 @@ export default function Home() {
       const res = await fetch(`/api/conversations/${id}`, { method: 'DELETE' })
       if (!res.ok) throw new Error()
     } catch {
-      // Re-fetch to restore on failure
+      console.warn('[home] Failed to delete conversation, refreshing list')
       fetch('/api/conversations')
         .then((r) => r.json())
         .then(setRecent)
-        .catch(() => {})
+        .catch(() => { console.warn('[home] Failed to reload conversations after delete failure') })
     }
   }
 
   const handleSubmit = async () => {
     if (!rawInput.trim()) return
     setLoading(true)
+    setError(null)
 
     try {
       const res = await fetch('/api/augment', {
@@ -70,6 +72,12 @@ export default function Home() {
         body: JSON.stringify({ rawInput: rawInput.trim() }),
       })
 
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({ error: 'Request failed' }))
+        setError(data.error ?? 'Failed to prepare conversation')
+        return
+      }
+
       const data = await res.json()
 
       trackEvent('conversation_started', {
@@ -77,13 +85,10 @@ export default function Home() {
         framework: data.augmentations?.[data.recommended]?.framework ?? '',
       })
 
-      const params = new URLSearchParams({
-        rawInput: data.rawInput,
-        recommended: data.recommended,
-        augmentations: JSON.stringify(data.augmentations),
-      })
-      window.location.href = `/review?${params.toString()}`
+      window.location.href = `/review/${data.conversationId}`
     } catch {
+      setError('Network error. Please try again.')
+    } finally {
       setLoading(false)
     }
   }
@@ -123,6 +128,9 @@ export default function Home() {
         </div>
 
         {/* Submit */}
+        {error && (
+          <p className="text-red-500 text-sm mb-3">{error}</p>
+        )}
         <button
           onClick={handleSubmit}
           disabled={loading || !rawInput.trim()}
