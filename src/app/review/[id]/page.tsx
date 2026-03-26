@@ -1,10 +1,10 @@
 'use client'
 
-import { Suspense, useState, useEffect, useMemo } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { Suspense, useState, useEffect, use } from 'react'
 import { TOPIC_TYPES, type TopicType, type AugmentationsMap } from '@/lib/augmenter'
 import type { ResponseLength } from '@/lib/orchestrator'
 import { MODEL_CONFIGS } from '@/lib/models'
+import { trackEvent } from '@/lib/analytics'
 
 const MODEL_COLORS: Record<string, { dot: string; activeBg: string; activeBorder: string; activeText: string }> = {
   claude:  { dot: 'bg-claude',  activeBg: 'bg-claude-faint',  activeBorder: 'border-claude/30',  activeText: 'text-claude' },
@@ -26,18 +26,50 @@ const TOPIC_DESCRIPTIONS: Record<TopicType, string> = {
   open_question: 'Examines the question from multiple angles and surfaces trade-offs',
 }
 
-function ReviewContent() {
-  const searchParams = useSearchParams()
+function ReviewContent({ conversationId: initialConversationId }: { conversationId: string }) {
+  const [conversationId, setConversationId] = useState(initialConversationId)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [rawInput, setRawInput] = useState('')
+  const [augmentations, setAugmentations] = useState<AugmentationsMap>({} as AugmentationsMap)
+  const [selectedType, setSelectedType] = useState<TopicType>('open_question')
+  const [augmentedPrompt, setAugmentedPrompt] = useState('')
+  const [isEdited, setIsEdited] = useState(false)
+  const [regenerating, setRegenerating] = useState(false)
+  const [essayMode, setEssayMode] = useState(false)
+  const [responseLength, setResponseLength] = useState<ResponseLength>('standard')
+  const [submitting, setSubmitting] = useState(false)
 
-  const initialRawInput = searchParams.get('rawInput') ?? ''
-  const recommended = (searchParams.get('recommended') ?? 'prediction') as TopicType
-
-  const [rawInput, setRawInput] = useState(initialRawInput)
   const [availableModels, setAvailableModels] = useState<string[]>(Object.keys(MODEL_CONFIGS))
   const defaultCounts: Record<string, number> = {}
   for (const key of Object.keys(MODEL_CONFIGS)) defaultCounts[key] = 1
   const [modelCounts, setModelCounts] = useState<Record<string, number>>(defaultCounts)
 
+  // Load conversation from DB
+  useEffect(() => {
+    fetch(`/api/conversations/${conversationId}`)
+      .then(r => {
+        if (!r.ok) throw new Error('Conversation not found')
+        return r.json()
+      })
+      .then(data => {
+        setRawInput(data.rawInput)
+        const augs: AugmentationsMap = data.augmentations
+          ? (typeof data.augmentations === 'string' ? JSON.parse(data.augmentations) : data.augmentations)
+          : ({} as AugmentationsMap)
+        setAugmentations(augs)
+        const topicType = data.topicType as TopicType
+        setSelectedType(topicType)
+        setAugmentedPrompt(augs[topicType]?.augmentedPrompt ?? data.augmentedPrompt)
+        setLoading(false)
+      })
+      .catch(err => {
+        setError(err.message)
+        setLoading(false)
+      })
+  }, [conversationId])
+
+  // Load available models based on user access
   useEffect(() => {
     fetch('/api/user')
       .then(r => r.json())
@@ -60,7 +92,7 @@ function ReviewContent() {
           setModelCounts(counts)
         }
       })
-      .catch(() => {})
+      .catch(() => console.warn('[review] Failed to check user access'))
   }, [])
 
   const MAX_PER_MODEL = 3
@@ -73,26 +105,7 @@ function ReviewContent() {
   }
 
   const totalSelected = Object.values(modelCounts).reduce((sum, n) => sum + n, 0)
-
-  const augmentations: AugmentationsMap = useMemo(() => {
-    try {
-      return JSON.parse(searchParams.get('augmentations') ?? '{}')
-    } catch {
-      return {} as AugmentationsMap
-    }
-  }, [searchParams])
-
-  const [selectedType, setSelectedType] = useState<TopicType>(recommended)
-  const [augmentedPrompt, setAugmentedPrompt] = useState(
-    augmentations[recommended]?.augmentedPrompt ?? ''
-  )
-  const [isEdited, setIsEdited] = useState(false)
-  const [regenerating, setRegenerating] = useState(false)
-  const [essayMode, setEssayMode] = useState(false)
-  const [responseLength, setResponseLength] = useState<ResponseLength>('standard')
-  const [currentAugmentations, setCurrentAugmentations] = useState(augmentations)
-
-  const currentFramework = currentAugmentations[selectedType]?.framework ?? ''
+  const currentFramework = augmentations[selectedType]?.framework ?? ''
 
   const handleTagClick = (type: TopicType) => {
     if (type === selectedType) return
@@ -101,13 +114,13 @@ function ReviewContent() {
       if (!confirmed) return
     }
     setSelectedType(type)
-    setAugmentedPrompt(currentAugmentations[type]?.augmentedPrompt ?? '')
+    setAugmentedPrompt(augmentations[type]?.augmentedPrompt ?? '')
     setIsEdited(false)
   }
 
   const handlePromptChange = (value: string) => {
     setAugmentedPrompt(value)
-    setIsEdited(value !== currentAugmentations[selectedType]?.augmentedPrompt)
+    setIsEdited(value !== augmentations[selectedType]?.augmentedPrompt)
   }
 
   const handleRegenerate = async () => {
@@ -118,34 +131,74 @@ function ReviewContent() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ rawInput }),
       })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({ error: 'Regeneration failed' }))
+        setError(data.error ?? 'Failed to regenerate')
+        return
+      }
       const data = await res.json()
-      setCurrentAugmentations(data.augmentations)
-      setAugmentedPrompt(data.augmentations[selectedType]?.augmentedPrompt ?? '')
-      setIsEdited(false)
+      if (data.augmentations) {
+        setAugmentations(data.augmentations)
+        setAugmentedPrompt(data.augmentations[selectedType]?.augmentedPrompt ?? '')
+        setIsEdited(false)
+        // Update to new draft conversation
+        if (data.conversationId) {
+          setConversationId(data.conversationId)
+          window.history.replaceState(null, '', `/review/${data.conversationId}`)
+        }
+      }
+    } catch {
+      setError('Network error during regeneration')
     } finally {
       setRegenerating(false)
     }
   }
 
-  const handleRun = () => {
-    // Expand counts into instance keys: { gpt: 2, claude: 1 } → gpt:0,gpt:1,claude:0
+  const handleRun = async () => {
+    setSubmitting(true)
+    setError(null)
     const instanceKeys: string[] = []
     for (const [key, count] of Object.entries(modelCounts)) {
       for (let i = 0; i < count; i++) {
         instanceKeys.push(`${key}:${i}`)
       }
     }
-    const params = new URLSearchParams({
-      rawInput,
-      augmentedPrompt,
-      topicType: selectedType,
-      framework: currentFramework,
-      models: instanceKeys.join(','),
-      essayMode: String(essayMode),
-      responseLength,
-    })
-    window.location.href = `/conversation?${params.toString()}`
+
+    try {
+      const res = await fetch('/api/conversation', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          conversationId,
+          selectedType,
+          augmentedPrompt,
+          models: instanceKeys,
+          essayMode,
+          responseLength,
+        }),
+      })
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({ error: 'Request failed' }))
+        setError(data.error ?? 'Failed to start conversation')
+        setSubmitting(false)
+        return
+      }
+
+      trackEvent('conversation_started', {
+        topic_type: selectedType,
+        framework: currentFramework,
+      })
+
+      window.location.href = `/conversation/${conversationId}`
+    } catch {
+      setError('Network error. Please try again.')
+      setSubmitting(false)
+    }
   }
+
+  if (loading) return <div className="text-ink-faint">Loading...</div>
+  if (error && loading) return <div className="text-danger">{error}</div>
 
   return (
     <div>
@@ -158,6 +211,12 @@ function ReviewContent() {
         Review <span className="text-amber italic">Prompt</span>
       </h1>
 
+      {error && (
+        <div className="bg-danger/5 border border-danger/20 rounded-xl p-4 mb-6 text-danger animate-fade-up">
+          {error}
+        </div>
+      )}
+
       <div className="animate-fade-up stagger-1 mb-6">
         <p className="text-xs font-medium tracking-widest uppercase text-ink-faint mb-2">Your Input</p>
         <textarea
@@ -168,7 +227,6 @@ function ReviewContent() {
         />
       </div>
 
-      {/* Critical inputs */}
       <div className="animate-fade-up stagger-2 mb-4">
         <p className="text-xs font-medium tracking-widest uppercase text-ink-faint mb-3">Framing</p>
         <div className="flex gap-3 flex-wrap mb-3">
@@ -245,7 +303,6 @@ function ReviewContent() {
         </div>
       </div>
 
-      {/* Key output */}
       <div className="animate-fade-up stagger-4 mb-8">
         <p className="text-xs font-medium tracking-widest uppercase text-ink-faint mb-2">Augmented Prompt</p>
         <textarea
@@ -255,7 +312,6 @@ function ReviewContent() {
         />
       </div>
 
-      {/* Configuration */}
       <div className="animate-fade-up stagger-5 mb-8 flex flex-wrap items-start gap-x-10 gap-y-4">
         <div className="flex items-center gap-3">
           <label htmlFor="essay-mode" className="text-xs font-medium tracking-widest uppercase text-ink-faint cursor-pointer">
@@ -322,20 +378,21 @@ function ReviewContent() {
         </button>
         <button
           onClick={handleRun}
-          disabled={totalSelected === 0}
+          disabled={totalSelected === 0 || submitting}
           className="flex-1 py-3 bg-amber text-white hover:bg-amber-light disabled:bg-cream-dark disabled:text-ink-faint rounded-xl font-medium transition-all duration-200 active:scale-[0.995]"
         >
-          Run Conversation
+          {submitting ? 'Starting...' : 'Run Conversation'}
         </button>
       </div>
     </div>
   )
 }
 
-export default function ReviewPage() {
+export default function ReviewPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params)
   return (
     <Suspense fallback={<div className="text-ink-faint">Loading...</div>}>
-      <ReviewContent />
+      <ReviewContent conversationId={id} />
     </Suspense>
   )
 }
