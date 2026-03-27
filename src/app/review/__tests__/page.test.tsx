@@ -93,12 +93,18 @@ describe('ReviewPage', () => {
     expect(hrefSpy).toHaveBeenCalledWith(expect.stringContaining('essayMode=true'))
   })
 
-  it('defaults each model count to 1 and sends instance keys', () => {
+  it('renders model cards as clickable toggles without +/- buttons', () => {
     render(<ReviewPage />)
-    // All 4 models should default to count 1
-    for (const key of ['claude', 'gpt', 'gemini', 'grok']) {
-      expect(screen.getByTestId(`count-${key}`)).toHaveTextContent('1')
-    }
+    // Model names should be visible
+    expect(screen.getByText('Claude')).toBeInTheDocument()
+    expect(screen.getByText('GPT')).toBeInTheDocument()
+    // No +/- buttons should exist
+    expect(screen.queryByLabelText(/increase/i)).not.toBeInTheDocument()
+    expect(screen.queryByLabelText(/decrease/i)).not.toBeInTheDocument()
+  })
+
+  it('all models selected by default, sends instance keys in model:0 format', () => {
+    render(<ReviewPage />)
     fireEvent.click(screen.getByText('Run Conversation'))
     const url = hrefSpy.mock.calls[0]?.[0] as string
     const params = new URLSearchParams(url.split('?')[1])
@@ -109,50 +115,45 @@ describe('ReviewPage', () => {
     expect(models).toContain('grok:0')
   })
 
-  it('increases model count and generates multiple instance keys', () => {
+  it('clicking a model card toggles it off and excludes from URL', () => {
     render(<ReviewPage />)
-    // Click + for GPT twice to get count to 3
-    const increaseGpt = screen.getByLabelText('Increase GPT count')
-    fireEvent.click(increaseGpt)
-    fireEvent.click(increaseGpt)
-    expect(screen.getByTestId('count-gpt')).toHaveTextContent('3')
-
-    fireEvent.click(screen.getByText('Run Conversation'))
-    const url = hrefSpy.mock.calls[0]?.[0] as string
-    const params = new URLSearchParams(url.split('?')[1])
-    const models = params.get('models')?.split(',') ?? []
-    expect(models.filter(m => m.startsWith('gpt:'))).toHaveLength(3)
-    expect(models).toContain('gpt:0')
-    expect(models).toContain('gpt:1')
-    expect(models).toContain('gpt:2')
-  })
-
-  it('decreases model count to 0 and excludes from URL', () => {
-    render(<ReviewPage />)
-    const decreaseClaude = screen.getByLabelText('Decrease Claude count')
-    fireEvent.click(decreaseClaude)
-    expect(screen.getByTestId('count-claude')).toHaveTextContent('0')
+    // Click Claude card to deselect it
+    const claudeCard = screen.getByTestId('model-card-claude')
+    fireEvent.click(claudeCard)
 
     fireEvent.click(screen.getByText('Run Conversation'))
     const url = hrefSpy.mock.calls[0]?.[0] as string
     const params = new URLSearchParams(url.split('?')[1])
     const models = params.get('models')?.split(',') ?? []
     expect(models.filter(m => m.startsWith('claude:'))).toHaveLength(0)
+    expect(models).toContain('gpt:0')
   })
 
-  it('disables Run when all counts are 0', () => {
+  it('clicking a deselected model card toggles it back on', () => {
     render(<ReviewPage />)
-    // Set all to 0
-    for (const name of ['Claude', 'GPT', 'Gemini', 'Grok']) {
-      fireEvent.click(screen.getByLabelText(`Decrease ${name} count`))
+    const claudeCard = screen.getByTestId('model-card-claude')
+    // Toggle off then on
+    fireEvent.click(claudeCard)
+    fireEvent.click(claudeCard)
+
+    fireEvent.click(screen.getByText('Run Conversation'))
+    const url = hrefSpy.mock.calls[0]?.[0] as string
+    const params = new URLSearchParams(url.split('?')[1])
+    const models = params.get('models')?.split(',') ?? []
+    expect(models).toContain('claude:0')
+  })
+
+  it('disables Run when all models are deselected', () => {
+    render(<ReviewPage />)
+    for (const key of ['claude', 'gpt', 'gemini', 'grok']) {
+      fireEvent.click(screen.getByTestId(`model-card-${key}`))
     }
     expect(screen.getByText('Run Conversation')).toBeDisabled()
   })
 
-  it('shows total response count', () => {
+  it('does not show total response count', () => {
     render(<ReviewPage />)
-    // Default: 4 models × 1 = 4 total
-    expect(screen.getByText('4 responses total')).toBeInTheDocument()
+    expect(screen.queryByText(/responses total/i)).not.toBeInTheDocument()
   })
 
   it('deduplicates models when API returns duplicate providers', async () => {
