@@ -175,9 +175,12 @@ export default function ConversationDetailPage() {
 
       {round2.length > 0 && (
         <div className="mb-10 animate-fade-up stagger-3">
-          <div className="flex items-center gap-3 mb-5">
-            <p className="text-xs font-medium tracking-widest uppercase text-ink-faint">Round 2 — Reactions</p>
-            <div className="flex-1 h-px bg-border" />
+          <div className="mb-5">
+            <div className="flex items-center gap-3">
+              <p className="text-xs font-medium tracking-widest uppercase text-ink-faint">Round 2 — Reactions</p>
+              <div className="flex-1 h-px bg-border" />
+            </div>
+            <p className="text-xs text-ink-muted mt-1">Each model reacts to what the others said</p>
           </div>
           <div className="space-y-3">
             {round2.map((r) => {
