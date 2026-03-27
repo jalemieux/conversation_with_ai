@@ -382,9 +382,12 @@ function ConversationContent() {
 
       {round2Started && (
         <div className="mb-10">
-          <div className="flex items-center gap-3 mb-5 animate-fade-up">
-            <p className="text-xs font-medium tracking-widest uppercase text-ink-faint">Round 2 — Reactions</p>
-            <div className="flex-1 h-px bg-border" />
+          <div className="mb-5 animate-fade-up">
+            <div className="flex items-center gap-3">
+              <p className="text-xs font-medium tracking-widest uppercase text-ink-faint">Round 2 — Reactions</p>
+              <div className="flex-1 h-px bg-border" />
+            </div>
+            <p className="text-xs text-ink-muted mt-1">Each model reacts to what the others said</p>
           </div>
           <div className="space-y-3">
             {modelsRef.current.map((instanceKey) => {
@@ -410,12 +413,15 @@ function ConversationContent() {
       {allDone && (
         <div className="mt-8 animate-fade-up flex flex-wrap items-center gap-2">
           {round1Done && !round2Started && (
-            <button
-              onClick={startRound2}
-              className="px-5 py-2.5 bg-amber text-cream hover:bg-amber-dark rounded-xl font-medium transition-all duration-200 text-sm shadow-[0_2px_8px_rgba(26,26,26,0.15)] hover:shadow-[0_2px_12px_rgba(26,26,26,0.25)] cursor-pointer"
-            >
-              Start Round 2
-            </button>
+            <>
+              <p className="w-full text-sm text-ink-muted mb-1">Each model reads the others&apos; responses and reacts — agreeing, disagreeing, or offering new perspectives.</p>
+              <button
+                onClick={startRound2}
+                className="px-5 py-2.5 bg-amber text-cream hover:bg-amber-dark rounded-xl font-medium transition-all duration-200 text-sm shadow-[0_2px_8px_rgba(26,26,26,0.15)] hover:shadow-[0_2px_12px_rgba(26,26,26,0.25)] cursor-pointer"
+              >
+                Start Round 2
+              </button>
+            </>
           )}
           <button
             onClick={() => { window.location.href = '/' }}
