@@ -40,7 +40,7 @@ export function ShareButton({ url }: ShareButtonProps) {
           <line x1="12" y1="2" x2="12" y2="15" />
         </svg>
       )}
-      {copied ? 'Link copied!' : 'Share'}
+      {copied ? 'Link copied!' : 'Share this conversation'}
     </button>
   )
 }

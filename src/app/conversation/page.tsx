@@ -339,7 +339,7 @@ function ConversationContent() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="sticky top-0 z-10 bg-cream flex items-center justify-between py-3 mb-6">
         <a href="/" className="text-ink-faint hover:text-amber text-sm inline-flex items-center gap-1.5 transition-colors">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="opacity-60"><path d="M10 12L6 8L10 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
           New Conversation
@@ -417,13 +417,6 @@ function ConversationContent() {
               Start Round 2
             </button>
           )}
-          <button
-            onClick={() => { window.location.href = '/' }}
-            className="px-5 py-2.5 bg-ink text-cream hover:bg-ink-light rounded-xl font-medium transition-all duration-200 text-sm shadow-[0_2px_8px_rgba(26,26,26,0.15)] hover:shadow-[0_2px_12px_rgba(26,26,26,0.25)] cursor-pointer"
-          >
-            New Conversation
-          </button>
-          {conversationId && <ShareButton url={`${window.location.origin}/conversation/${conversationId}`} />}
         </div>
       )}
 

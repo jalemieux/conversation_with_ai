@@ -85,7 +85,7 @@ export default function ConversationDetailPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="sticky top-0 z-10 bg-cream flex items-center justify-between py-3 mb-6">
         <a href="/" className="text-ink-faint hover:text-amber text-sm inline-flex items-center gap-1.5 transition-colors">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="opacity-60"><path d="M10 12L6 8L10 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
           New Conversation
@@ -213,9 +213,6 @@ export default function ConversationDetailPage() {
         </div>
       )}
 
-      <div className="mt-8 animate-fade-up stagger-4 flex justify-end">
-        <ShareButton url={`${typeof window !== 'undefined' ? window.location.origin : ''}/conversation/${conversation.id}`} />
-      </div>
 
       {isOwner && activeKey && (
         <AudioPlayer
